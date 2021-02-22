@@ -3,15 +3,183 @@
 
 __Version__ = "0.1"
 __Author__ = "pzweuj"
-__Date__ = "20210220"
+__Date__ = "20210222"
+
+"""
+本程序为DNA自动化分析主流程，采用配置文件作为输入的方式运行程序，其中配置文件模板位于
+Config文件夹下。
+"""
 
 import os
 import sys
 import argparse
-import yaml
+import shutil
+
+FUN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(FUN_DIR)
+from Other.function import *
+from QC.qc import QC
+from Mapping.mapping import Mapping
+from Mutation.snv_indel import SNV_Indel
+from Mutation.cnv import CNV
+from Mutation.sv import SV
+from Annotation.anno import Annotation
 
 
-def main(runinfo):
-    config = open(runinfo, "r")
-    configDict = yaml.load(config)
-    
+def main(runInfo):
+    # 基本信息获取
+    runningInformation = getRunningInfo(runInfo)
+    project = runningInformation["project"]
+    rawdataDir = runningInformation["rawdata"]
+    output = runningInformation["output"]
+    sample = runningInformation["sample"]
+    pair = runningInformation["pair"]
+    process = runningInformation["process"]
+    setting = runningInformation["setting"]
+    print("使用配置 " + runInfo)
+    print("运行项目 " + project)
+
+    # 检查原始数据及重命名
+    for fileName in os.listdir(rawdataDir):
+        if (sample + "_") in fileName:
+            print("已成功找到 " + fileName)
+            if "R1" in fileName:
+                os.rename(rawdataDir + "/" + fileName, rawdataDir + "/" + sample + "_R1.fastq.gz")
+            elif "R2" in fileName:
+                os.rename(rawdataDir + "/" + fileName, rawdataDir + "/" + sample + "_R2.fastq.gz")
+            else:
+                continue
+        else:
+            continue
+
+    # 运行信息获取
+    threads_ = process["threads"]
+    QC_ = process["QC"]
+    Mapping_ = process["Mapping"]
+    SnvIndel_ = process["Mutation"]["SNV_indel"]
+    SV_ = process["Mutation"]["SV"]
+    CNV_ = process["Mutation"]["CNV"]
+    Annotation_ = process["Annotation"]
+
+    # 质控
+    if QC_ == None:
+        print("根据设定不进行质控")
+    else:
+        QC_process = QC(runningInformation)
+        print("使用 " + QC_process.runApp + " 进行质控")
+        print("质控后文件输出目录： " + QC_process.output + "/cleandata")
+        print("使用线程数 " + QC_process.threads)
+        if QC_process.runApp == "fastp":
+            QC_process.fastp()
+        else:
+            print("未找到此质控方法")
+
+    # 比对
+    if Mapping_ == None:
+        print("根据设定不进行比对")
+    else:
+        Mapping_process = Mapping(runningInformation)
+        print("使用 " + Mapping_process.runApp + " 进行比对")
+        print("比对后文件输出目录： " + Mapping_process.output + "/bam")
+        print("使用线程数 " + Mapping_process.threads)
+        if Mapping_process.runApp == "bwa_mem":
+            Mapping_process.bwa_mem()
+        else:
+            print("未找到此比对方法")
+
+        # 只有进行了比对才会考虑进行去重和校对
+        if Mapping_process.runApp:
+            # 此步会将比对结果bam文件进行替换
+            if Mapping_process.removeDups:
+                Mapping_process.markDuplicates()
+            # 此步会在bam文件夹下新建BQSR.bam文件
+            if Mapping_process.recalibrate:
+                Mapping_process.recalibrator()
+
+    # 变异检测
+    ## SNV indel
+    if SnvIndel_ == None:
+        print("根据设定不进行SNV/indel检测")
+    else:
+        SnvIndel_process = SNV_Indel(runningInformation)
+        print("使用 " + SnvIndel_process.runApp + " 进行SNV/indel检测")
+        print("检测后文件输出目录： " + SnvIndel_process.output + "/vcf")
+        print("使用线程数 " + SnvIndel_process.threads)
+        if SnvIndel_process.runApp == "GATK_m2":
+            SnvIndel_process.gatk_m2()
+            # 是否过滤
+            if SnvIndel_process.runningInfo["setting"]["Mutation"]["gatk_filter"]["run"]:
+                print("进行GATK4 Mutect2过滤")
+                SnvIndel_process.gatk_filter()
+        elif SnvIndel_process.runApp == "freebayes":
+            SnvIndel_process.freebayes()
+        else:
+            print("未找到此变异检测方法")
+        print("全局过滤")
+        print("最低深度 " + SnvIndel_process.filtDP + "X")
+        print("QUAL " + SnvIndel_process.filtQUAL)
+        SnvIndel_process.filter()
+
+    ## CNV
+    if CNV_ == None:
+        print("根据设定不进行CNV检测")
+    else:
+        CNV_process = CNV(runningInformation)
+        print("使用 " + CNV_process.runApp + " 进行结构变异/融合变异检测")
+        print("检测后文件输出目录： " + CNV_process.output + "/sv")
+        print("使用线程数 " + CNV_process.threads)
+        if CNV_process.runApp == "cnvkit":
+            CNV_process.cnvkit()
+        else:
+            print("未找到此CNV检测方法")
+
+    ## SV
+    if SV_ == None:
+        print("根据设定不进行SV检测")
+    else:
+        SV_process = SV(runningInformation)
+        print("使用 " + SV_process.runApp + " 进行结构变异/融合变异检测")
+        print("检测后文件输出目录： " + SV_process.output + "/sv")
+        print("使用线程数 " + SV_process.threads)
+        if SV_process.runApp == "lumpy":
+            SV_process.lumpy()
+        else:
+            print("未找到此SV检测方法")
+
+    # 注释
+    if Annotation_ == None:
+        print("根据设定不进行注释")
+    else:
+        Annotation_process = Annotation(runningInformation)
+        print("使用 " + Annotation_process.runApp + " 进行注释")
+        print("检测后文件输出目录： " + Annotation_process.output + "/annotation")
+        print("使用线程数 " + Annotation_process.threads)
+        if Annotation_process.runApp == "annovar":
+            Annotation_process.annovar()
+        else:
+            print("未找到此注释方法")
+
+    # 删除中间文件
+    if runningInformation["setting"]["REMOVE_TMP"]:
+    	shutil.rmtree(output + "/tempFile")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="DNA Pipeline",
+        prog="DNA Pipeline",
+        usage="python3 DNA.py -i <Config Yaml File>")
+    group = parser.add_mutually_exclusive_group()
+    parser.add_argument("-v", "--version", action="version",
+        version="Version 0.1 20210222")
+    parser.add_argument("-i", "--input", type=str,
+        help="输入配置文件")
+
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        parser.exit()
+    args = parser.parse_args()
+    main(runInfo=args.input)
+
+# 测试
+# NCCL = "/home/bioinfo/ubuntu/bin/DNApipeline-main/Config/NCCL.yaml"
+# main(NCCL)

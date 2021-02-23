@@ -53,34 +53,29 @@ class SNV_Indel(object):
         else:
             bamFile = sampleID + ".bam"
 
+        tmpDir = resultsDir + "/tempFile/gatk_" + sampleID
+        mkdir(tmpDir)
+
         # 区分有无pon的情况，应可用配对样本或多个正常样本建立pon
         if pon == None:
-            cmd = """
-                gatk Mutect2 \\
-                    -R {reference} \\
-                    -I {resultsDir}/bam/{bamFile} \\
-                    -O {resultsDir}/tempFile/{sampleID}.m2.vcf \\
-                    -tumor {sampleID} \\
-                    --af-of-alleles-not-in-resource 0.0000025 \\
-                    --germline-resource {gnomad} \\
-                    --native-pair-hmm-threads {threads} \\
-                    -L {bedFile}
-                cp {resultsDir}/tempFile/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
-            """.format(bedFile=bedFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
-        else:
-            cmd = """
-                gatk Mutect2 \\
-                    -R {reference} \\
-                    -I {resultsDir}/bam/{bamFile} \\
-                    -O {resultsDir}/tempFile/{sampleID}.m2.vcf \\
-                    -tumor {sampleID} \\
-                    --af-of-alleles-not-in-resource 0.0000025 \\
-                    --germline-resource {gnomad} \\
-                    -pon {pon} \\
-                    --native-pair-hmm-threads {threads} \\
-                    -L {bedFile}
-                cp {resultsDir}/tempFile/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
-            """.format(bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)            
+            pon = "null"
+
+        if bedFile == None:
+            bedFile = "null"
+        
+        cmd = """
+            gatk Mutect2 \\
+                -R {reference} \\
+                -I {resultsDir}/bam/{bamFile} \\
+                -O {tmpDir}/{sampleID}.m2.vcf \\
+                -tumor {sampleID} \\
+                --af-of-alleles-not-in-resource 0.0000025 \\
+                --germline-resource {gnomad} \\
+                -pon {pon} \\
+                --native-pair-hmm-threads {threads} \\
+                -L {bedFile}
+            cp {tmpDir}/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
+        """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
         print(cmd)
         os.system(cmd)
 
@@ -109,13 +104,24 @@ class SNV_Indel(object):
         else:
             bamFile = sampleID + ".bam"
 
-        cmd = """
-            freebayes -f {reference} \\
-                {resultsDir}/bam/{bamFile} \\
-                -t {bedFile} \\
-                > {resultsDir}/tempFile/{sampleID}.freebayes.vcf
-            cp {resultsDir}/tempFile/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
-        """.format(bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+        tmpDir = resultsDir + "/tempFile/freebayes_" + sampleID
+        mkdir(tmpDir)
+
+        if bedFile != None:
+            cmd = """
+                freebayes -f {reference} \\
+                    {resultsDir}/bam/{bamFile} \\
+                    -t {bedFile} \\
+                    > {tmpDir}/{sampleID}.freebayes.vcf
+                cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
+            """.format(tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+        else:
+            cmd = """
+                freebayes -f {reference} \\
+                    {resultsDir}/bam/{bamFile} \\
+                    > {tmpDir}/{sampleID}.freebayes.vcf
+                cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
+            """.format(tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)            
         print(cmd)
         os.system(cmd)
 
@@ -133,29 +139,33 @@ class SNV_Indel(object):
         else:
             bamFile = sampleID + ".bam"
 
+        tmpDir = resultsDir + "/tempFile/gatk_" + sampleID
+        mkdir(tmpDir)
+        
         cmd = """
             gatk GetPileupSummaries \\
                 -I {resultsDir}/bam/{bamFile} \\
-                -O {resultsDir}/tempFile/{sampleID}.pileups.table \\
+                -O {tmpDir}/{sampleID}.pileups.table \\
                 -V {small_exac} \\
                 -L {bedFile} \\
                 -R {reference}
 
             gatk CalculateContamination \\
-                -I {resultsDir}/tempFile/{sampleID}.pileups.table \\
-                -O {resultsDir}/tempFile/{sampleID}.contamination.table
+                -I {tmpDir}/{sampleID}.pileups.table \\
+                -O {tmpDir}/{sampleID}.contamination.table
 
             gatk FilterMutectCalls \\
                 -R {reference} \\
-                -V {resultsDir}/tempFile/{sampleID}.m2.vcf \\
-                -O {resultsDir}/tempFile/{sampleID}.m2.contFiltered.vcf \\
-                --contamination-table {resultsDir}/tempFile/{sampleID}.contamination.table
+                -V {tmpDir}/{sampleID}.m2.vcf \\
+                -O {tmpDir}/{sampleID}.m2.contFiltered.vcf \\
+                --contamination-table {tmpDir}/{sampleID}.contamination.table
 
             bcftools view \\
-                {resultsDir}/tempFile/{sampleID}.m2.contFiltered.vcf \\
+                {tmpDir}/{sampleID}.m2.contFiltered.vcf \\
                 -f PASS,clustered_events,slippage \\
-                > {resultsDir}/vcf/{sampleID}.vcf
-        """.format(bamFile=bamFile, resultsDir=resultsDir, sampleID=sampleID, small_exac=small_exac, bedFile=bedFile, reference=reference)
+                > {tmpDir}/{sampleID}.filter.vcf
+            cp {tmpDir}/{sampleID}.filter.vcf {resultsDir}/vcf/{sampleID}.vcf
+        """.format(tmpDir=tmpDir, bamFile=bamFile, resultsDir=resultsDir, sampleID=sampleID, small_exac=small_exac, bedFile=bedFile, reference=reference)
         print(cmd)
         os.system(cmd)
 

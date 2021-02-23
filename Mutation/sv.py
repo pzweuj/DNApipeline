@@ -39,28 +39,32 @@ class SV(object):
         sampleID = self.sample
         threads = self.threads
 
+        tmpDir = resultsDir + "/tempFile/lumpy_" + sampleID
+        mkdir(tmpDir)
+
         cmd = """
             samtools view -bh -F 1294 {resultsDir}/bam/{sampleID}.bam \\
                 | samtools sort -@ {threads} - \\
-                -o {resultsDir}/tempFile/{sampleID}.discordants.bam
-            samtools index {resultsDir}/tempFile/{sampleID}.discordants.bam
+                -o {tmpDir}/{sampleID}.discordants.bam
+            samtools index {tmpDir}/{sampleID}.discordants.bam
             samtools view -h {resultsDir}/bam/{sampleID}.bam \\
                 | extractSplitReads_BwaMem \\
                 -i stdin \\
                 | samtools view -bSh - \\
                 | samtools sort -@ {threads} - \\
-                -o {resultsDir}/tempFile/{sampleID}.splitters.bam
-            samtools index {resultsDir}/tempFile/{sampleID}.splitters.bam
+                -o {tmpDir}/{sampleID}.splitters.bam
+            samtools index {tmpDir}/{sampleID}.splitters.bam
             lumpyexpress -B {resultsDir}/bam/{sampleID}.bam \\
-                -D {resultsDir}/tempFile/{sampleID}.discordants.bam \\
-                -S {resultsDir}/tempFile/{sampleID}.splitters.bam \\
-                -O {resultsDir}/tempFile/{sampleID}.lumpy.vcf
+                -D {tmpDir}/{sampleID}.discordants.bam \\
+                -S {tmpDir}/{sampleID}.splitters.bam \\
+                -O {tmpDir}/{sampleID}.lumpy.vcf
             svtyper-sso \\
-                -i {resultsDir}/tempFile/{sampleID}.lumpy.vcf \\
+                -i {tmpDir}/{sampleID}.lumpy.vcf \\
                 -B {resultsDir}/bam/{sampleID}.bam \\
                 --cores {threads} \\
-                -o {resultsDir}/sv/{sampleID}.vcf
-        """.format(resultsDir=resultsDir, sampleID=sampleID, threads=threads)
+                -o {tmpDir}/{sampleID}.gt.vcf
+            cp {tmpDir}/{sampleID}.gt.vcf {resultsDir}/sv/{sampleID}.vcf
+        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
         print(cmd)
         os.system(cmd)
 

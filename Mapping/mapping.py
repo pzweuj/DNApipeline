@@ -30,8 +30,10 @@ class Mapping(object):
         
         self.databases = runningInfo["setting"]["Mapping"]["databases"]
         self.reference = runningInfo["setting"]["Mapping"]["reference"]
+        self.markDups = runningInfo["setting"]["Mapping"]["markDups"]
         self.removeDups = runningInfo["setting"]["Mapping"]["removeDups"]
         self.recalibrate = runningInfo["setting"]["Mapping"]["recalibrate"]
+        self.bed = runningInfo["setting"]["Mutation"]["Bed"]
 
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
@@ -46,6 +48,9 @@ class Mapping(object):
         threads = self.threads
         resultsDir = self.output
         sampleID = self.sample
+
+        tmpDir = resultsDir + "/tempFile/bwa_" + sampleID
+        mkdir(tmpDir)
         cmd = """
             bwa mem -t {threads} \\
                 -M \\
@@ -53,10 +58,10 @@ class Mapping(object):
                 {reference} \\
                 {resultsDir}/cleandata/{sampleID}.clean_R1.fastq.gz \\
                 {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
-                | samtools view -bSh --threads {threads} - > {resultsDir}/tempFile/{sampleID}.bam
-            samtools sort {resultsDir}/tempFile/{sampleID}.bam -@ {threads} -o {resultsDir}/bam/{sampleID}.bam
+                | samtools view -bSh --threads {threads} - > {tmpDir}/{sampleID}.bam
+            samtools sort {tmpDir}/{sampleID}.bam -@ {threads} -o {resultsDir}/bam/{sampleID}.bam
             samtools index {resultsDir}/bam/{sampleID}.bam
-        """.format(threads=threads, sampleID=sampleID, reference=reference, resultsDir=resultsDir)
+        """.format(tmpDir=tmpDir, threads=threads, sampleID=sampleID, reference=reference, resultsDir=resultsDir)
         print(cmd)
         os.system(cmd)
 
@@ -71,16 +76,23 @@ class Mapping(object):
     def markDuplicates(self):
         resultsDir = self.output
         sampleID = self.sample
+        if self.removeDups:
+            remove = "true"
+        else:
+            remove = "false"
+
+        tmpDir = resultsDir + "/tempFile/markDups_" + sampleID
+        mkdir(tmpDir)
         cmd = """
             gatk MarkDuplicates \\
                 -I {resultsDir}/bam/{sampleID}.bam \\
-                -O {resultsDir}/bam/{sampleID}.marked.bam \\
-                -M {resultsDir}/tempFile/{sampleID}.dups.txt \\
-                --REMOVE_DUPLICATES true
-            rm {resultsDir}/bam/{sampleID}.bam*
-            mv {resultsDir}/bam/{sampleID}.marked.bam {resultsDir}/bam/{sampleID}.bam
+                -O {tmpDir}/{sampleID}.marked.bam \\
+                -M {tmpDir}/{sampleID}.dups.txt \\
+                --REMOVE_DUPLICATES {remove}
+            mv {resultsDir}/bam/{sampleID}.bam* {tmpDir}
+            mv {tmpDir}/{sampleID}.marked.bam {resultsDir}/bam/{sampleID}.bam
             samtools index {resultsDir}/bam/{sampleID}.bam
-        """.format(resultsDir=resultsDir, sampleID=sampleID)
+        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, remove=remove)
         print(cmd)
         os.system(cmd)
 
@@ -92,6 +104,10 @@ class Mapping(object):
         indel_1000g = databases + "/" + self.runningInfo["setting"]["Mapping"]["indel_1000g"]
         resultsDir = self.output
         sampleID = self.sample
+
+        tmpDir = resultsDir + "/tempFile/gatk_" + sampleID
+        mkdir(tmpDir)
+
         cmd = """
             gatk BaseRecalibrator \\
                 --known-sites {snp} \\
@@ -99,15 +115,51 @@ class Mapping(object):
                 --known-sites {indel_1000g} \\
                 -R {reference} \\
                 -I {resultsDir}/bam/{sampleID}.bam \\
-                -O {resultsDir}/tempFile/{sampleID}.recal.table
+                -O {tmpDir}/{sampleID}.recal.table
 
             gatk ApplyBQSR \\
                 -R {reference} \\
-                --bqsr-recal-file {resultsDir}/tempFile/{sampleID}.recal.table \\
+                --bqsr-recal-file {tmpDir}/{sampleID}.recal.table \\
                 -I {resultsDir}/bam/{sampleID}.bam \\
-                -O {resultsDir}/bam/{sampleID}.BQSR.bam
+                -O {tmpDir}/{sampleID}.BQSR.bam
 
-            mv {resultsDir}/bam/{sampleID}.BQSR.bai {resultsDir}/bam/{sampleID}.BQSR.bam.bai
-        """.format(snp=snp, mills=mills, indel_1000g=indel_1000g, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+            mv {resultsDir}/bam/{sampleID}.bam* {tmpDir}
+            mv {tmpDir}/{sampleID}.BQSR.bam {resultsDir}/bam/{sampleID}.bam
+            mv {tmpDir}/{sampleID}.BQSR.bai {resultsDir}/bam/{sampleID}.bam.bai
+        """.format(tmpDir=tmpDir, snp=snp, mills=mills, indel_1000g=indel_1000g, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
         print(cmd)
-        os.system(cmd)        
+        os.system(cmd)
+
+    # bamdst
+    # https://github.com/shiquan/bamdst
+    # 用于统计bam比对效果
+    def bamdst(self):
+        resultsDir = self.output
+        sampleID = self.sample
+        bedFile = self.bed
+        
+        tmpDir = resultsDir + "/tempFile/bamdst_" + sampleID
+        mkdir(tmpDir)
+
+        if bedFile == None:
+            print("必须导入bed文件才能进行捕获分析！")
+        else:
+            cmd = """
+                bamdst -p {bedFile} -o {tmpDir} {resultsDir}/bam/{sampleID}.bam
+            """.format(bedFile=bedFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID)
+            print(cmd)
+            os.system(cmd)
+
+        bamdstReportFile = open(tmpDir + "/coverage.report", "r")
+        bamdstReport = open(resultsDir + "/QC/" + sampleID + ".bamdst.txt", "w")
+        bamdstReport.write(sampleID + " Bamdst QC Report\n")
+        for line in bamdstReportFile:
+            if line.startswith("#"):
+                continue
+            else:
+                lines = line.lstrip()
+                bamdstReport.write(lines)
+        bamdstReport.close()
+        bamdstReportFile.close()
+        print("bamdst捕获分析完成！")
+

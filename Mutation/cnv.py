@@ -38,15 +38,18 @@ class CNV(object):
         sampleID = self.sample
         referenceCnn = self.runningInfo["setting"]["Mutation"]["CNN"]
 
+        tmpDir = resultsDir + "/tempFile/cnvkit_" + sampleID
+        mkdir(tmpDir)
+
         cmd = """
             cnvkit.py batch \\
                 {resultsDir}/bam/{sampleID}.bam \\
                 -r {referenceCnn} \\
-                -d {resultsDir}/tempFile/{sampleID}_cnvkit \\
+                -d {tmpDir} \\
                 -m hybrid \\
                 --diagram --scatter
-            cp {resultsDir}/tempFile/{sampleID}_cnvkit/{sampleID}.cnr {resultsDir}/cnv/{sampleID}.cnr
-        """.format(resultsDir=resultsDir, sampleID=sampleID, referenceCnn=referenceCnn)
+            cp {tmpDir}/{sampleID}.cnr {resultsDir}/cnv/{sampleID}.cnr
+        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, referenceCnn=referenceCnn)
         print(cmd)
         os.system(cmd)
 

@@ -17,12 +17,12 @@ process:                                               # 流程设定值，不�
   Mapping:                                             # 比对程序
   Mutation:                                            # 分析流程
     SNV_indel:                                         # 变异检测
-    CNV: "cnvkit"                                      # CNV检测
+    CNV:                                               # CNV检测
     SV:                                                # SV检测
   Annotation:                                          # 注释
   Other:                                               # 其他分析项目
     HLA:                                               # HLA分型分析
-    MSI:                                               # MSI分析
+    MSI:  "msisensor2"                                             # MSI分析
     TMB:                                               # TMB分析
   Report: false                                        # 是否生成报告
 
@@ -33,7 +33,8 @@ setting:
   Mapping:
     databases: "/home/bioinfo/ubuntu/database/hg19"
     reference: "/home/bioinfo/ubuntu/database/hg19/ucsc.hg19.fasta"
-    removeDups: true
+    markDups: true
+    removeDups: false
     recalibrate: true
     mills: "Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
     indel_1000g: "1000G_phase1.indels.hg19.sites.vcf"
@@ -54,5 +55,6 @@ setting:
     buildver: "hg19"
     MAF: 0.02
   Other:
+    MSIsensor2: "/home/bioinfo/ubuntu/software/msisensor2/models_hg19_GRCh37"
   Report:
   REMOVE_TMP: false

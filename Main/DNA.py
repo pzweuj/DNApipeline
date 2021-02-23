@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.1"
+__Version__ = "0.12"
 __Author__ = "pzweuj"
-__Date__ = "20210222"
+__Date__ = "20210223"
 
 """
 本程序为DNA自动化分析主流程，采用配置文件作为输入的方式运行程序，其中配置文件模板位于
@@ -24,6 +24,7 @@ from Mutation.snv_indel import SNV_Indel
 from Mutation.cnv import CNV
 from Mutation.sv import SV
 from Annotation.anno import Annotation
+from Other.msi import MSI
 
 
 def main(runInfo):
@@ -60,6 +61,7 @@ def main(runInfo):
     SV_ = process["Mutation"]["SV"]
     CNV_ = process["Mutation"]["CNV"]
     Annotation_ = process["Annotation"]
+    MSI_ = process["Other"]["MSI"]
 
     # 质控
     if QC_ == None:
@@ -71,6 +73,7 @@ def main(runInfo):
         print("使用线程数 " + QC_process.threads)
         if QC_process.runApp == "fastp":
             QC_process.fastp()
+            QC_process.fastp_filter()
         else:
             print("未找到此质控方法")
 
@@ -90,11 +93,15 @@ def main(runInfo):
         # 只有进行了比对才会考虑进行去重和校对
         if Mapping_process.runApp:
             # 此步会将比对结果bam文件进行替换
-            if Mapping_process.removeDups:
+            if Mapping_process.markDups:
                 Mapping_process.markDuplicates()
             # 此步会在bam文件夹下新建BQSR.bam文件
             if Mapping_process.recalibrate:
                 Mapping_process.recalibrator()
+
+        # 使用bamdst进行捕获分析，仅当设定bed文件时进行
+        if Mapping_process.bed != None:
+            Mapping_process.bamdst()
 
     # 变异检测
     ## SNV indel
@@ -105,9 +112,9 @@ def main(runInfo):
         print("使用 " + SnvIndel_process.runApp + " 进行SNV/indel检测")
         print("检测后文件输出目录： " + SnvIndel_process.output + "/vcf")
         print("使用线程数 " + SnvIndel_process.threads)
-        if SnvIndel_process.runApp == "GATK_m2":
+        if SnvIndel_process.runApp == "gatk_m2":
             SnvIndel_process.gatk_m2()
-            # 是否过滤
+            # 是否过滤，此步必须要bed文件
             if SnvIndel_process.runningInfo["setting"]["Mutation"]["gatk_filter"]["run"]:
                 print("进行GATK4 Mutect2过滤")
                 SnvIndel_process.gatk_filter()
@@ -156,8 +163,27 @@ def main(runInfo):
         print("使用线程数 " + Annotation_process.threads)
         if Annotation_process.runApp == "annovar":
             Annotation_process.annovar()
+            Annotation_process.annovarResultsFilter()
         else:
             print("未找到此注释方法")
+
+
+    # Other
+    ## MSI
+    if MSI_ == None:
+        print("根据设定不进行MSI检测")
+    else:
+        MSI_process = MSI(runningInformation)
+        print("使用 " + MSI_process.runApp + " 进行微卫星不稳定检测")
+        print("检测后文件输出目录： " + MSI_process.output + "/msi")
+        print("使用线程数 " + MSI_process.threads)
+        if MSI_process.runApp == "msisensor2":
+            MSI_process.msisensor2()
+        else:
+            print("未找到此MSI分析方法")
+
+
+
 
     # 删除中间文件
     if runningInformation["setting"]["REMOVE_TMP"]:

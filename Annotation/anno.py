@@ -32,6 +32,76 @@ class Annotation(object):
         mkdir(self.output + "/tempFile")
         mkdir(self.output + "/annotation")
 
+    # annovar结果过滤与标准化
+    def annovarResultsFilter(self):
+        buildver = self.runningInfo["setting"]["Annotation"]["buildver"]
+        resultsDir = self.output
+        sampleID = self.sample
+
+        annvarResultsFile = """{resultsDir}/annotation/{sampleID}.{buildver}_multianno.txt""".format(resultsDir=resultsDir, sampleID=sampleID, buildver=buildver)
+        SnpOutputFile = annvarResultsFile.replace(".txt", ".snp.txt")
+        IndelOutputFile = annvarResultsFile.replace(".txt", ".indel.txt")
+
+        annvarResults = open(annvarResultsFile, "r")
+        SnpOutput = open(SnpOutputFile, "w")
+        IndelOutput = open(IndelOutputFile, "w")
+
+        for line in annvarResults:
+            if line.startswith("Chr"):
+                lineAfterSplit = line.split("\t")
+                outputList = []
+                for i in range(86):
+                    need = lineAfterSplit[i]
+                    outputList.append(need)
+                outputList.append("GT")
+                outputList.append("DP")
+                outputList.append("Ref_AD")
+                outputList.append("Alt_AD")
+                outputList.append("AF")
+                outputString = "\t".join(outputList) + "\n"
+                SnpOutput.write(outputString)
+                IndelOutput.write(outputString)        
+
+            else:
+                lineAfterSplit = line.split("\t")
+                Func = lineAfterSplit[5]
+                Ref = lineAfterSplit[3]
+                Alt = lineAfterSplit[4]
+                ExonicFunc = lineAfterSplit[8]
+                FORMAT = lineAfterSplit[95].split(":")
+                GT = FORMAT[0]
+                DP = FORMAT[3]
+                AD = FORMAT[1].split(",")
+                Ref_AD = AD[0]
+                Alt_AD = AD[1]
+                AF = FORMAT[2]
+
+                outputList = []
+                for i in range(86):
+                    need = lineAfterSplit[i]
+                    outputList.append(need)
+
+                outputList.append(GT)
+                outputList.append(DP)       
+                outputList.append(Ref_AD)
+                outputList.append(Alt_AD)
+                outputList.append(AF)
+
+                if ("splicing" in Func) or ("exonic" in Func):
+                    if "ncRNA" not in Func:
+                        if ("-" in Ref) or ("-" in Alt):
+                            indel = "\t".join(outputList) + "\n"
+                            IndelOutput.write(indel)                    
+                        else:
+                            if ("nonsynonymous" in ExonicFunc) or ("stopgain" in ExonicFunc):
+                                snp = "\t".join(outputList) + "\n"
+                                SnpOutput.write(snp)
+
+        annvarResults.close()
+        SnpOutput.close()
+        IndelOutput.close()
+        print("完成annovar结果过滤与格式调整")
+
     # annovar
     # https://annovar.openbioinformatics.org/en/latest/
     def annovar(self):
@@ -41,21 +111,25 @@ class Annotation(object):
         sampleID = self.sample
         threads = self.threads
 
+        tmpDir = resultsDir + "/tempFile/annovar_" + sampleID
+        mkdir(tmpDir)
+
         cmd = """
             convert2annovar.pl -format vcf4 {resultsDir}/vcf/{sampleID}.vcf \\
-                --includeinfo > {resultsDir}/tempFile/{sampleID}.avinput
-            table_annovar.pl {resultsDir}/tempFile/{sampleID}.avinput \\
+                --includeinfo > {tmpDir}/{sampleID}.avinput
+            table_annovar.pl {tmpDir}/{sampleID}.avinput \\
                 {humandb} -buildver {buildver} \\
                 -out {resultsDir}/annotation/{sampleID} -remove \\
-                -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210131,cosmic70,dbnsfp41a \\
+                -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210131,dbnsfp41a,cosmic70 \\
                 -operation g,r,f,f,f,f,f \\
-                -nastring . -thread {threads} -otherinfo
-        """.format(resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
+                -nastring - -thread {threads} -otherinfo
+        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
         print(cmd)
-        os.system(cmd)        
+        os.system(cmd)
 
     def snpeff(self):
         pass
 
     def vep(self):
         pass
+

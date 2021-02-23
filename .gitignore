@@ -1,0 +1,16 @@
+# windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# python
+*.py[cod]
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# self
+Report/lung_20210223.docx
+Document/

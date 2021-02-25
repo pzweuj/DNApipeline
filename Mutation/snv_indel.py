@@ -69,11 +69,11 @@ class SNV_Indel(object):
                 -I {resultsDir}/bam/{bamFile} \\
                 -O {tmpDir}/{sampleID}.m2.vcf \\
                 -tumor {sampleID} \\
-                --af-of-alleles-not-in-resource 0.0000025 \\
                 --germline-resource {gnomad} \\
                 -pon {pon} \\
                 --native-pair-hmm-threads {threads} \\
-                -L {bedFile}
+                -L {bedFile} \\
+                -A Coverage -A VariantType
             cp {tmpDir}/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
         """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
         print(cmd)

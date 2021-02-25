@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.12"
+__Version__ = "0.15"
 __Author__ = "pzweuj"
-__Date__ = "20210223"
+__Date__ = "20210225"
 
 """
 本程序为DNA自动化分析主流程，采用配置文件作为输入的方式运行程序，其中配置文件模板位于
@@ -137,6 +137,7 @@ def main(runInfo):
         print("使用线程数 " + CNV_process.threads)
         if CNV_process.runApp == "cnvkit":
             CNV_process.cnvkit()
+            CNV_process.cnvkit_filter()
         else:
             print("未找到此CNV检测方法")
 
@@ -150,6 +151,8 @@ def main(runInfo):
         print("使用线程数 " + SV_process.threads)
         if SV_process.runApp == "lumpy":
             SV_process.lumpy()
+        elif SV_process.runApp == "manta":
+            SV_process.manta()
         else:
             print("未找到此SV检测方法")
 

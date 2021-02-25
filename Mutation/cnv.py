@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.1"
+__Version__ = "0.13"
 __Author__ = "pzweuj"
-__Date__ = "20210222"
+__Date__ = "20210224"
 
 import os
 import sys
@@ -37,6 +37,7 @@ class CNV(object):
         resultsDir = self.output
         sampleID = self.sample
         referenceCnn = self.runningInfo["setting"]["Mutation"]["CNN"]
+        threads = self.threads
 
         tmpDir = resultsDir + "/tempFile/cnvkit_" + sampleID
         mkdir(tmpDir)
@@ -47,12 +48,49 @@ class CNV(object):
                 -r {referenceCnn} \\
                 -d {tmpDir} \\
                 -m hybrid \\
-                --diagram --scatter
-            cp {tmpDir}/{sampleID}.cnr {resultsDir}/cnv/{sampleID}.cnr
-        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, referenceCnn=referenceCnn)
+                --diagram --scatter -p {threads}
+            cp {tmpDir}/{sampleID}.call.cns {resultsDir}/cnv/{sampleID}.cnvkit.cns
+        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, referenceCnn=referenceCnn, threads=threads)
         print(cmd)
         os.system(cmd)
 
+    def cnvkit_filter(self):
+        # 需要建立hg19坐标与外显子编号对应数据库，落实是哪个外显子的扩增
+        resultsDir = self.output
+        sampleID = self.sample
+        tmpDir = resultsDir + "/tempFile/cnvkit_" + sampleID
+
+        cnvkitResultsFile = open(tmpDir + "/" + sampleID + ".call.cns", "r")
+        cnvkitResults = open(resultsDir + "/cnv/" + sampleID + ".cnvkit.txt", "w")
+        cnvkitResults.write("chromsome\tgene\tVAF\tlog2\tdepth\tp_ttest\tprobes\tweight\n")
+        for line in cnvkitResultsFile:
+            if line.startswith("chromosome"):
+                continue
+            else:
+                lineAfterSplit = line.split("\t")
+                chrom = lineAfterSplit[0]
+                start = lineAfterSplit[1]
+                end = lineAfterSplit[2]
+                gene = lineAfterSplit[3]
+                log2 = lineAfterSplit[4]
+                VAF = lineAfterSplit[5]
+                depth = lineAfterSplit[6]
+                p_ttest = lineAfterSplit[7]
+                probes = lineAfterSplit[8]
+                weight = lineAfterSplit[9]
+
+                if gene == "-":
+                    continue
+                elif "," in gene:
+                    continue
+                elif VAF == "2":
+                    continue
+                else:
+                    filter_output = [chrom, gene, VAF, log2, depth, p_ttest, probes, weight]
+                    outputString = "\t".join(filter_output)
+                    cnvkitResults.write(outputString)
+        cnvkitResults.close()
+        cnvkitResultsFile.close()
 
 
     def conifer(self):

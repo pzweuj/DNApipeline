@@ -25,6 +25,8 @@ class SV(object):
 
         self.threads = str(runningInfo["process"]["threads"])
         self.runApp = runningInfo["process"]["Mutation"]["SV"]
+        self.reference = runningInfo["setting"]["Mapping"]["reference"]
+        self.bed = runningInfo["setting"]["Mutation"]["Bed"]
 
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
@@ -57,7 +59,7 @@ class SV(object):
             lumpyexpress -B {resultsDir}/bam/{sampleID}.bam \\
                 -D {tmpDir}/{sampleID}.discordants.bam \\
                 -S {tmpDir}/{sampleID}.splitters.bam \\
-                -O {tmpDir}/{sampleID}.lumpy.vcf
+                -o {tmpDir}/{sampleID}.lumpy.vcf
             svtyper-sso \\
                 -i {tmpDir}/{sampleID}.lumpy.vcf \\
                 -B {resultsDir}/bam/{sampleID}.bam \\
@@ -65,6 +67,28 @@ class SV(object):
                 -o {tmpDir}/{sampleID}.gt.vcf
             cp {tmpDir}/{sampleID}.gt.vcf {resultsDir}/sv/{sampleID}.vcf
         """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
+        print(cmd)
+        os.system(cmd)
+
+    # manta
+    # https://github.com/Illumina/manta
+    def manta(self):
+        manta = "/mnt/d/ubuntu/software/manta-1.6.0.centos6_x86_64/bin/configManta.py"
+        reference = self.reference
+        tumorBam = self.output + "/bam/" + self.sample + ".bam"
+        bedFile = self.bed
+
+        tmpDir = self.output + "/tempFile/manta_" + self.sample
+        mkdir(tmpDir) 
+
+        cmd = """
+            {manta} \\
+                --tumorBam {tumorBam} \\
+                --referenceFasta {reference} \\
+                --exome \\
+                --callRegions {bedFile} \\
+                --runDir {tmpDir}
+        """.format(manta=manta, tumorBam=tumorBam, reference=reference, bedFile=bedFile, tmpDir=tmpDir)
         print(cmd)
         os.system(cmd)
 

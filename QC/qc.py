@@ -82,7 +82,7 @@ class QC(object):
         cleanQ30Rate = "%.2f" % (float(cleanQ30Bases / cleanBases) * 100) + "%"
         cleanGC = "%.2f" % (jsonFile["summary"]["after_filtering"]["gc_content"] * 100) + "%"
 
-        fastpReport = open(resultsDir + "/QC/" + sample + ".fastp.txt", "w")
+        fastpReport = open(resultsDir + "/QC/" + sampleID + ".fastp.txt", "w")
         fastpReport.write(sampleID + " fastp QC Report\n")
         fastpReport.write("rawReads\t" + str(rawReads) + "\n")
         fastpReport.write("rawBases\t" + str(rawBases) + "\n")

@@ -71,6 +71,27 @@ class Mapping(object):
     def bowtie2(self):
         pass
 
+    # gencore
+    # https://github.com/OpenGene/gencore
+    # 当使用fastp识别UMI时使用此方法进行去重
+    def gencore(self):
+        resultsDir = self.output
+        sampleID = self.sample
+        threads = self.threads
+
+        tmpDir = resultsDir + "/tempFile/gencore_" + sampleID
+
+        cmd = """
+            gencore -i {resultsDir}/bam/{sampleID}.bam \\
+                -o {tmpDir}/{sampleID}.umi.bam \\
+                -u UMI --high_qual 30 \\
+                -j {tmpDir}/{sampleID}.json -h {tmpDir}/{sampleID}.html
+            samtools sort -@ {threads} {tmpDir}/{sampleID}.umi.bam -o {resultsDir}/bam/{sampleID}.umi.bam
+            samtools index {resultsDir}/bam/{sampleID}.umi.bam
+        """.format(resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir, threads=threads)
+        print(cmd)
+        os.system(cmd)
+
     # GATK4
     # https://github.com/broadinstitute/gatk
     def markDuplicates(self):

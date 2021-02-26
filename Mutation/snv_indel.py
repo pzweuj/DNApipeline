@@ -73,7 +73,7 @@ class SNV_Indel(object):
                 -pon {pon} \\
                 --native-pair-hmm-threads {threads} \\
                 -L {bedFile} \\
-                -A Coverage -A VariantType
+                -A Coverage -A GenotypeSummaries
             cp {tmpDir}/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
         """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
         print(cmd)
@@ -83,6 +83,12 @@ class SNV_Indel(object):
         pass
 
     def mutscan(self):
+        pass
+
+    def vardict(self):
+        pass
+
+    def strelka(self):
         pass
 
     # bcftools

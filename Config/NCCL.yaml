@@ -30,6 +30,8 @@ process:                                               # 流程设定值，不�
 ########## 模块设定 ###########
 setting:
   QC:
+    UMI_loc: "per_read"                                    # [index1, index2, read1, read2, per_index, per_read]
+    UMI_len: 4
   Mapping:
     databases: "/home/bioinfo/ubuntu/database/hg19"
     reference: "/home/bioinfo/ubuntu/database/hg19/ucsc.hg19.fasta"

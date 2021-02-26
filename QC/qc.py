@@ -27,6 +27,9 @@ class QC(object):
         self.threads = str(runningInfo["process"]["threads"])
         self.runApp = runningInfo["process"]["QC"]
 
+        self.UMI_loc = runningInfo["setting"]["QC"]["UMI_loc"]
+        self.UMI_len = runningInfo["setting"]["QC"]["UMI_len"]
+
         mkdir(self.output)
         mkdir(self.output + "/QC")
         mkdir(self.output + "/cleandata")
@@ -39,19 +42,33 @@ class QC(object):
         sampleID = self.sample
         resultsDir = self.output
         threads = self.threads
+        UMI_loc = self.UMI_loc
+        UMI_len = self.UMI_len
 
         tmpDir = resultsDir + "/tempFile/fastp_" + sampleID
         mkdir(tmpDir)
 
-        cmd = """
-            fastp -i {rawdataDir}/{sampleID}_R1.fastq.gz \\
-                -I {rawdataDir}/{sampleID}_R2.fastq.gz \\
-                -o {resultsDir}/cleandata/{sampleID}.clean_R1.fastq.gz \\
-                -O {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
-                -j {tmpDir}/{sampleID}.json \\
-                -h {tmpDir}/{sampleID}.html \\
-                -w {threads}
-        """.format(tmpDir=tmpDir, rawdataDir=rawdataDir, sampleID=sampleID, resultsDir=resultsDir, threads=threads)
+        if UMI_loc == None:
+            cmd = """
+                fastp -i {rawdataDir}/{sampleID}_R1.fastq.gz \\
+                    -I {rawdataDir}/{sampleID}_R2.fastq.gz \\
+                    -o {resultsDir}/cleandata/{sampleID}.clean_R1.fastq.gz \\
+                    -O {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
+                    -j {tmpDir}/{sampleID}.json \\
+                    -h {tmpDir}/{sampleID}.html \\
+                    -w {threads} -q 5 -u 50 -n 15
+            """.format(tmpDir=tmpDir, rawdataDir=rawdataDir, sampleID=sampleID, resultsDir=resultsDir, threads=threads)
+        else:
+            cmd = """
+                fastp -i {rawdataDir}/{sampleID}_R1.fastq.gz \\
+                    -I {rawdataDir}/{sampleID}_R2.fastq.gz \\
+                    -o {resultsDir}/cleandata/{sampleID}.clean_R1.fastq.gz \\
+                    -O {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
+                    -j {tmpDir}/{sampleID}.json \\
+                    -h {tmpDir}/{sampleID}.html \\
+                    -w {threads} -A -Q -L -q 5 -u 50 -n 15 \\
+                    -U --umi_prefix=UMI --umi_loc={UMI_loc} --umi_len={UMI_len} --umi_skip=4
+            """.format(UMI_loc=UMI_loc, UMI_len=UMI_len, tmpDir=tmpDir, rawdataDir=rawdataDir, sampleID=sampleID, resultsDir=resultsDir, threads=threads)            
         print(cmd)
         os.system(cmd)
 

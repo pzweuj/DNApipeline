@@ -74,6 +74,7 @@ def main(runInfo):
         if QC_process.runApp == "fastp":
             QC_process.fastp()
             QC_process.fastp_filter()
+
         else:
             print("未找到此质控方法")
 

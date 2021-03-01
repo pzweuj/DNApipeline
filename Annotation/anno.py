@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.1"
+__Version__ = "0.12"
 __Author__ = "pzweuj"
-__Date__ = "20210222"
+__Date__ = "20210301"
 
 import os
 import sys
@@ -68,13 +68,21 @@ class Annotation(object):
                 Ref = lineAfterSplit[3]
                 Alt = lineAfterSplit[4]
                 ExonicFunc = lineAfterSplit[8]
-                FORMAT = lineAfterSplit[95].split(":")
-                GT = FORMAT[0]
-                DP = FORMAT[3]
-                AD = FORMAT[1].split(",")
+                FORMAT = lineAfterSplit[94].split(":")
+                FORMAT_results = lineAfterSplit[95].split(":")
+
+                Format_list_zipped = zip(FORMAT, FORMAT_results)
+                Format_list = list(Format_list_zipped)
+                Format_dict = {}
+                for formats in Format_list:
+                    Format_dict[formats[0]] = formats[1]
+
+                GT = Format_dict["GT"]
+                DP = Format_dict["DP"]
+                AD = Format_dict["AD"].split(",")
                 Ref_AD = AD[0]
                 Alt_AD = AD[1]
-                AF = FORMAT[2]
+                AF = "%.2f" % ((float(Alt_AD) / float(DP)) * 100) + "%"
 
                 outputList = []
                 for i in range(86):

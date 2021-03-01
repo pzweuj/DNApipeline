@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.15"
+__Version__ = "0.16"
 __Author__ = "pzweuj"
-__Date__ = "20210225"
+__Date__ = "20210301"
 
 """
 本程序为DNA自动化分析主流程，采用配置文件作为输入的方式运行程序，其中配置文件模板位于
@@ -93,6 +93,9 @@ def main(runInfo):
 
         # 只有进行了比对才会考虑进行去重和校对
         if Mapping_process.runApp:
+            # 只要进行了umi的提取，就进行gencore过滤
+            if Mapping_process.umi:
+                Mapping_process.gencore()
             # 此步会将比对结果bam文件进行替换
             if Mapping_process.markDups:
                 Mapping_process.markDuplicates()
@@ -191,7 +194,7 @@ def main(runInfo):
 
     # 删除中间文件
     if runningInformation["setting"]["REMOVE_TMP"]:
-    	shutil.rmtree(output + "/tempFile")
+        shutil.rmtree(output + "/tempFile")
 
 
 if __name__ == "__main__":

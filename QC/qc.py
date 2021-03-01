@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.1"
+__Version__ = "0.2"
 __Author__ = "pzweuj"
-__Date__ = "20210222"
+__Date__ = "20210301"
 
 import os
 import sys
@@ -56,7 +56,7 @@ class QC(object):
                     -O {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
                     -j {tmpDir}/{sampleID}.json \\
                     -h {tmpDir}/{sampleID}.html \\
-                    -w {threads} -q 5 -u 50 -n 15
+                    -w {threads}
             """.format(tmpDir=tmpDir, rawdataDir=rawdataDir, sampleID=sampleID, resultsDir=resultsDir, threads=threads)
         else:
             cmd = """
@@ -66,8 +66,8 @@ class QC(object):
                     -O {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
                     -j {tmpDir}/{sampleID}.json \\
                     -h {tmpDir}/{sampleID}.html \\
-                    -w {threads} -A -Q -L -q 5 -u 50 -n 15 \\
-                    -U --umi_prefix=UMI --umi_loc={UMI_loc} --umi_len={UMI_len} --umi_skip=4
+                    -w {threads} -A \\
+                    -U --umi_prefix=UMI --umi_loc={UMI_loc} --umi_len={UMI_len} --umi_skip=2
             """.format(UMI_loc=UMI_loc, UMI_len=UMI_len, tmpDir=tmpDir, rawdataDir=rawdataDir, sampleID=sampleID, resultsDir=resultsDir, threads=threads)            
         print(cmd)
         os.system(cmd)

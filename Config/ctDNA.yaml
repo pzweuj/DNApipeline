@@ -30,6 +30,9 @@ process:                                               # 流程设定值，不�
 ########## 模块设定 ###########
 setting:
   QC:
+    UMI_loc: "per_read"
+    UMI_len: "4"
+    UMI_structure:
   Mapping:
     databases: "/home/bioinfo/ubuntu/database/hg19"
     reference: "/home/bioinfo/ubuntu/database/hg19/ucsc.hg19.fasta"
@@ -45,15 +48,15 @@ setting:
       run: false                                             # 是否进行mutect2结果的过滤，注意，运行此步必须有bed文件
       small_exac: "small_exac_common_3_hg19.vcf"
     filter:
-      DP: 10000
+      DP: 2000
       QUAL: 20
+      MAF: 0.001
     Bed: 
     CNN: "/home/bioinfo/ubuntu/project/NCCL/cnv/normal.cnn"
     gnomad: "af-only-gnomad.raw.sites.hg19.vcf.gz"
   Annotation:
     humandb: "/home/bioinfo/ubuntu/database/humandb"
     buildver: "hg19"
-    MAF: 0.002
   Other:
   Report:
   REMOVE_TMP: false

@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.1"
+__Version__ = "0.15"
 __Author__ = "pzweuj"
-__Date__ = "20210222"
+__Date__ = "20210301"
 
 import os
 import sys
@@ -31,6 +31,7 @@ class SNV_Indel(object):
         self.bed = runningInfo["setting"]["Mutation"]["Bed"]
         self.filtDP = str(runningInfo["setting"]["Mutation"]["filter"]["DP"])
         self.filtQUAL = str(runningInfo["setting"]["Mutation"]["filter"]["QUAL"])
+        self.MAF = str(runningInfo["setting"]["Mutation"]["filter"]["MAF"])
 
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
@@ -98,11 +99,15 @@ class SNV_Indel(object):
 
     # freebayes
     # https://github.com/freebayes/freebayes
+    # 为了避免后续annovar注释的bug，此处设定genotyping-max-banddepth
+    # 同一位点只输出最多突变条数的突变方向
     def freebayes(self):
         reference = self.reference
         resultsDir = self.output
         sampleID = self.sample
         bedFile = self.bed
+        MAF = self.MAF
+        DP = self.filtDP
 
         checkBQSR = sampleID + ".BQSR.bam"
         if checkBQSR in os.listdir(resultsDir + "/bam"):
@@ -118,16 +123,22 @@ class SNV_Indel(object):
                 freebayes -f {reference} \\
                     {resultsDir}/bam/{bamFile} \\
                     -t {bedFile} \\
+                    -F {MAF} -C 5 --min-coverage {DP} \\
+                    --genotyping-max-banddepth 1 \\
                     > {tmpDir}/{sampleID}.freebayes.vcf
+                sed -i "s/0\\/0/0\\/1/g" {tmpDir}/{sampleID}.freebayes.vcf
                 cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
-            """.format(tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+            """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
         else:
             cmd = """
                 freebayes -f {reference} \\
                     {resultsDir}/bam/{bamFile} \\
+                    -F {MAF} -C 5 --min-coverage {DP} \\
+                    --genotyping-max-banddepth 1 \\
                     > {tmpDir}/{sampleID}.freebayes.vcf
+                sed -i "s/0\\/0/0\\/1/g" {tmpDir}/{sampleID}.freebayes.vcf
                 cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
-            """.format(tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)            
+            """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)            
         print(cmd)
         os.system(cmd)
 

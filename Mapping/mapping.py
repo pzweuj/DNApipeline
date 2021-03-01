@@ -34,6 +34,8 @@ class Mapping(object):
         self.removeDups = runningInfo["setting"]["Mapping"]["removeDups"]
         self.recalibrate = runningInfo["setting"]["Mapping"]["recalibrate"]
         self.bed = runningInfo["setting"]["Mutation"]["Bed"]
+        self.MAF = runningInfo["setting"]["Mutation"]["filter"]["MAF"]
+        self.umi = runningInfo["setting"]["QC"]["UMI_loc"]
 
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
@@ -59,8 +61,10 @@ class Mapping(object):
                 {resultsDir}/cleandata/{sampleID}.clean_R1.fastq.gz \\
                 {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
                 | samtools view -bSh --threads {threads} - > {tmpDir}/{sampleID}.bam
-            samtools sort {tmpDir}/{sampleID}.bam -@ {threads} -o {resultsDir}/bam/{sampleID}.bam
-            samtools index {resultsDir}/bam/{sampleID}.bam
+            samtools sort {tmpDir}/{sampleID}.bam -@ {threads} -o {tmpDir}/{sampleID}.sort.bam
+            samtools index {tmpDir}/{sampleID}.sort.bam
+            cp {tmpDir}/{sampleID}.sort.bam {resultsDir}/bam/{sampleID}.bam
+            cp {tmpDir}/{sampleID}.sort.bam.bai {resultsDir}/bam/{sampleID}.bam.bai
         """.format(tmpDir=tmpDir, threads=threads, sampleID=sampleID, reference=reference, resultsDir=resultsDir)
         print(cmd)
         os.system(cmd)
@@ -78,17 +82,22 @@ class Mapping(object):
         resultsDir = self.output
         sampleID = self.sample
         threads = self.threads
+        reference = self.reference
 
         tmpDir = resultsDir + "/tempFile/gencore_" + sampleID
+        mkdir(tmpDir)
 
         cmd = """
             gencore -i {resultsDir}/bam/{sampleID}.bam \\
+                -r {reference} \\
                 -o {tmpDir}/{sampleID}.umi.bam \\
-                -u UMI --high_qual 30 \\
+                -u UMI -s 2 -d 1 \\
                 -j {tmpDir}/{sampleID}.json -h {tmpDir}/{sampleID}.html
-            samtools sort -@ {threads} {tmpDir}/{sampleID}.umi.bam -o {resultsDir}/bam/{sampleID}.umi.bam
-            samtools index {resultsDir}/bam/{sampleID}.umi.bam
-        """.format(resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir, threads=threads)
+            samtools sort -@ {threads} {tmpDir}/{sampleID}.umi.bam -o {tmpDir}/{sampleID}.umi.sort.bam
+            samtools index {tmpDir}/{sampleID}.umi.sort.bam
+            cp {tmpDir}/{sampleID}.umi.sort.bam {resultsDir}/bam/{sampleID}.bam
+            cp {tmpDir}/{sampleID}.umi.sort.bam.bai {resultsDir}/bam/{sampleID}.bam.bai
+        """.format(reference=reference, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir, threads=threads)
         print(cmd)
         os.system(cmd)
 
@@ -110,8 +119,7 @@ class Mapping(object):
                 -O {tmpDir}/{sampleID}.marked.bam \\
                 -M {tmpDir}/{sampleID}.dups.txt \\
                 --REMOVE_DUPLICATES {remove}
-            mv {resultsDir}/bam/{sampleID}.bam* {tmpDir}
-            mv {tmpDir}/{sampleID}.marked.bam {resultsDir}/bam/{sampleID}.bam
+            cp {tmpDir}/{sampleID}.marked.bam {resultsDir}/bam/{sampleID}.bam
             samtools index {resultsDir}/bam/{sampleID}.bam
         """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, remove=remove)
         print(cmd)
@@ -144,9 +152,8 @@ class Mapping(object):
                 -I {resultsDir}/bam/{sampleID}.bam \\
                 -O {tmpDir}/{sampleID}.BQSR.bam
 
-            mv {resultsDir}/bam/{sampleID}.bam* {tmpDir}
-            mv {tmpDir}/{sampleID}.BQSR.bam {resultsDir}/bam/{sampleID}.bam
-            mv {tmpDir}/{sampleID}.BQSR.bai {resultsDir}/bam/{sampleID}.bam.bai
+            cp {tmpDir}/{sampleID}.BQSR.bam {resultsDir}/bam/{sampleID}.bam
+            cp {tmpDir}/{sampleID}.BQSR.bai {resultsDir}/bam/{sampleID}.bam.bai
         """.format(tmpDir=tmpDir, snp=snp, mills=mills, indel_1000g=indel_1000g, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
         print(cmd)
         os.system(cmd)

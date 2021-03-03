@@ -124,6 +124,8 @@ def main(runInfo):
                 SnvIndel_process.gatk_filter()
         elif SnvIndel_process.runApp == "freebayes":
             SnvIndel_process.freebayes()
+        elif SnvIndel_process.runApp == "gatk_haplotypecaller":
+            SnvIndel_process.gatk_haplotypecaller()
         else:
             print("未找到此变异检测方法")
         print("全局过滤")
@@ -157,6 +159,7 @@ def main(runInfo):
             SV_process.lumpy()
         elif SV_process.runApp == "manta":
             SV_process.manta()
+            SV_process.manta_filter()
         else:
             print("未找到此SV检测方法")
 

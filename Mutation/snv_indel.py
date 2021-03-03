@@ -80,8 +80,31 @@ class SNV_Indel(object):
         print(cmd)
         os.system(cmd)
 
+    # GATK4
     def gatk_haplotypecaller(self):
-        pass
+        reference = self.reference
+        resultsDir = self.output
+        sampleID = self.sample
+        bedFile = self.bed
+        threads = self.threads
+        bedFile = self.bed
+
+        tmpDir = resultsDir + "/tempFile/HaplotypeCaller_" + sampleID
+        mkdir(tmpDir)
+
+        if bedFile == None:
+            bedFile = "null"
+        cmd = """
+            gatk HaplotypeCaller \\
+                -R {reference} \\
+                -I {resultsDir}/bam/{sampleID}.bam \\
+                -O {tmpDir}/{sampleID}.htc.vcf \\
+                -L {bedFile} \\
+                --native-pair-hmm-threads {threads}
+            cp {tmpDir}/{sampleID}.htc.vcf {resultsDir}/vcf/{sampleID}.vcf
+        """.format(reference=reference, resultsDir=resultsDir, tmpDir=tmpDir, sampleID=sampleID, bedFile=bedFile, threads=threads)
+        print(cmd)
+        os.system(cmd)
 
     def mutscan(self):
         pass

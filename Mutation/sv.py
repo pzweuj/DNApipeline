@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.16"
+__Version__ = "0.17"
 __Author__ = "pzweuj"
-__Date__ = "20210303"
+__Date__ = "20210304"
 
 
 import os
@@ -151,6 +151,229 @@ class SV(object):
         mantaResultsFilter.close()
         mantaResults.close()
         os.system("cp " + tmpDir + "/" + sampleID + ".manta.filter.vcf " + resultsDir + "/sv/" + sampleID + ".sv.vcf")
+
+    # 自编manta注释
+    # 对数据库进行解析，数据库使用refFlat，可通过ucsc直接下载
+    def checkFusionHotSpot(self):
+        database = self.runningInfo["setting"]["Annotation"]["refFlat"]
+        fusionStrand = self.svStrand
+        chrom = self.svChrom
+        breakPoint = self.breakPoint
+
+        db = open(database, "r")
+        output = []
+        ts_output = []
+        for line in db:
+            l = line.split("\n")[0].split("\t")
+            gene = l[0]
+            ts = l[1]
+            chrom_db = l[2]
+            strand = l[3]
+            gene_start = l[4]
+            gene_end = l[5]
+            cds_start = l[6]
+            cds_end = l[7]
+            exon_nums = l[8]
+            exon_starts = l[9]
+            exon_ends = l[10]
+
+            # 寻找注释
+            if chrom == chrom_db:
+                # 找到目标基因
+                if (int(breakPoint) >= int(gene_start)) and (int(breakPoint) <= int(gene_end)):
+
+                    exon_starts_list = exon_starts.split(",")[0: -1]
+                    exon_ends_list = exon_ends.split(",")[0: -1]
+
+                    # 将外显子起止点形成列表
+                    exon_checkpoint = []
+                    i = 0
+                    while i < int(exon_nums):
+                        exon_checkpoint.append(int(exon_starts_list[i]))
+                        exon_checkpoint.append(int(exon_ends_list[i]))
+                        i += 1
+
+                    # 判断目标基因的转录方向
+                    if strand == "+":
+                        if int(breakPoint) < exon_checkpoint[0]:
+                            if fusionStrand == "+":
+                                exon_out = gene + "_5UTR"
+                            elif fusionStrand == "-":
+                                exon_out = gene + "_exon1"
+                            else:
+                                exon_out = gene + "_?"
+
+                        elif int(breakPoint) > exon_checkpoint[-1]:
+                            if fusionStrand == "+":
+                                exon_out = gene + "_exon" + exon_nums
+                            elif fusionStrand == "-":
+                                exon_out = gene + "_3UTR"
+                            else:
+                                exon_out = gene + "_?"
+
+                        else:
+                            n = 0
+                            while n < (2 * int(exon_nums) - 1):
+                                if (int(breakPoint) >= exon_checkpoint[n]) and (int(breakPoint) <= exon_checkpoint[n+1]):
+                                    checkN = n
+                                n += 1
+
+                            if fusionStrand == "+":
+                                exon_out = gene + "_exon" + str(checkN // 2 + 1)
+                            elif fusionStrand == "-":
+                                exon_out = gene + "_exon" + str((checkN + 1) // 2 + 1)
+                            else:
+                                exon_out = gene + "_?"
+
+
+                    if strand == "-":
+                        if int(breakPoint) < exon_checkpoint[0]:
+                            if fusionStrand == "+":
+                                exon_out = gene + "_3UTR"
+                            elif fusionStrand == "-":
+                                exon_out = gene + "_exon" + exon_nums
+                            else:
+                                exon_out = gene + "_?"
+
+
+                        elif int(breakPoint) > exon_checkpoint[-1]:
+                            if fusionStrand == "+":
+                                exon_out = gene + "_exon1"
+                            elif fusionStrand == "-":
+                                exon_out = gene + "_5UTR"
+                            else:
+                                exon_out = gene + "_?"
+
+                        else:
+                            n = 0
+                            while n < (2 * int(exon_nums) - 1):
+                                if (int(breakPoint) >= exon_checkpoint[n]) and (int(breakPoint) <= exon_checkpoint[n+1]):
+                                    checkN = n
+                                n += 1
+
+                            if fusionStrand == "+":
+                                exon_out = gene + "_exon" + str(int(exon_nums) - checkN // 2)
+                            elif fusionStrand == "-":
+                                exon_out = gene + "_exon" + str(int(exon_nums) - (checkN + 1) // 2)
+                            else:
+                                exon_out = gene + "_?"
+
+                    output.append(exon_out)
+                    ts_output.append(ts)
+
+        if not output:
+            output.append("GeneUnknown_exon?")        
+        if not ts_output:
+            ts_output.append("Transcript?")
+        db.close()
+        return [output, ts_output]
+
+    def manta_anno(self):
+        sampleID = self.sample
+        resultsDir = self.output
+        refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
+
+        svFile = open(resultsDir + "/sv/" + sampleID + ".sv.vcf", "r")
+        svAnno = open(resultsDir + "/sv/" + sampleID + ".ann.txt", "w")
+        svAnno.write("chrom1\tbreakpoint1\tgene1\tchrom2\tbreakpoint2\tgene2\tfusionType\tAlt\tgeneSymbol\tPR\tSR\tDP\tVAF\tExon\tTranscript\n")
+        for line in svFile:
+            if line.startswith("#"):
+                continue
+            else:
+                lineAfterSplit = line.split("\t")
+                chrom = lineAfterSplit[0]
+                Pos = lineAfterSplit[1]
+                ID = lineAfterSplit[2]
+                Ref = lineAfterSplit[3]
+                Alt = lineAfterSplit[4]
+                Qual = lineAfterSplit[5]
+                Filter = lineAfterSplit[6]
+                Info = lineAfterSplit[7]
+                Format = lineAfterSplit[8]
+                Sample = lineAfterSplit[9]
+
+                if chrom == "chrM":
+                    continue
+
+                if ":" in Format:
+                    S = Sample.split(":")
+                    PR = S[0].split(",")
+                    SR = S[1].split(",")
+                    PR_ref = int(PR[0])
+                    PR_alt = int(PR[1])
+                    SR_ref = int(SR[0])
+                    SR_alt = int(SR[1])
+                else:
+                    PR = Sample.split(",")
+                    PR_ref = int(PR[0])
+                    PR_alt = int(PR[1])
+                    SR_ref = SR_alt = 0
+
+                DP = PR_ref + SR_ref + PR_alt + SR_alt
+                VAF = "%.2f" % (100 * float(PR_alt + SR_alt) / DP) + "%"
+
+                if ("[" in Alt) or ("]" in Alt):
+                    if chrom in Alt:
+                        fusionType = "Inversion"
+                    else:
+                        fusionType = "Translocation"
+
+                    # G    [chr1:1111111[G
+                    if Alt[0] == "[":
+                        chrom2 = Alt.split(":")[0].split("[")[1]
+                        breakpoint2 = Alt.split(":")[1].split("[")[0]
+                        strand = "--"
+                    
+                    # G    G[chr1:1111111[
+                    elif Alt[-1] == "[":
+                        chrom2 = Alt.split(":")[0].split("[")[1]
+                        breakpoint2 = Alt.split(":")[1].split("[")[0]
+                        strand = "+-"
+
+                    # G    ]chr1:1111111]G
+                    elif Alt[0] == "]":
+                        chrom2 = Alt.split(":")[0].split("]")[1]
+                        breakpoint2 = Alt.split(":")[1].split("]")[0]
+                        strand = "-+"
+
+                    # G    G]chr1:1111111]
+                    elif Alt[-1] == "]":
+                        chrom2 = Alt.split(":")[0].split("]")[1]
+                        breakpoint2 = Alt.split(":")[1].split("]")[0]
+                        strand = "++"
+
+                    else:
+                        chrom2 = "Unknown"
+                        breakpoint2 = "Unknown"
+                        strand = "Unknown"
+                        print("can not analysis: " + ID)
+
+                    self.database = refFlat
+                    self.svStrand = strand[0]
+                    self.svChrom = chrom
+                    self.breakPoint = Pos
+                    anno1 = self.checkFusionHotSpot()
+                    if chrom2 != "Unknown":
+                        self.svStrand = strand[1]
+                        self.svChrom = chrom2
+                        self.breakPoint = breakpoint2
+                        anno2 = self.checkFusionHotSpot()
+                    else:
+                        anno2 = [["GeneUnknown_exon?"], ["Transcript?"]]
+
+                    gene1 = anno1[0][0].split("_")[0]
+                    gene2 = anno2[0][0].split("_")[0]
+                    exon_output = ",".join(anno1[0]) + "|" + ",".join(anno2[0])
+                    transcript_output = ",".join(anno1[1]) + "|" + ",".join(anno2[1])
+                    outputStringList = [chrom, Pos, gene1, chrom2, breakpoint2, gene2, fusionType, Alt, gene1 + "-" + gene2, str(PR_alt), str(SR_alt), str(DP), VAF, exon_output, transcript_output]
+
+                    outputString = "\t".join(outputStringList)
+                    print(outputString)
+                    svAnno.write(outputString + "\n")
+        svFile.close()
+        svAnno.close()
+
+
 
     # factera
     # https://factera.stanford.edu/

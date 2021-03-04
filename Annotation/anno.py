@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.12"
+__Version__ = "0.16"
 __Author__ = "pzweuj"
-__Date__ = "20210301"
+__Date__ = "20210304"
 
 import os
 import sys
@@ -134,6 +134,7 @@ class Annotation(object):
         """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
         print(cmd)
         os.system(cmd)
+
 
     def snpeff(self):
         pass

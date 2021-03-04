@@ -1,25 +1,25 @@
 # 20210222
-# NCCL项目标准化配置文件
-# NCCL过滤深度设定为500X，突变丰度为0.02
+# Germline项目标准化配置文件
+# Germline过滤深度设定为500X，突变丰度为0.02
 
 ######## 项目基本信息 #########
-project: "Germline"                                        # 定义项目
-rawdata: "/home/bioinfo/ubuntu/project/NCCL/rawdata"   # 原始数据存放文件夹
-output: "/home/bioinfo/ubuntu/project/DNAtest"         # 结果输出文件夹
-sample: "B17NC"                                        # 样本编号
-pair:                                                  # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
+project: "Germline"             # 定义项目
+rawdata: "/PATH/TO/Rawdata"   # 原始数据存放文件夹
+output: "/PATH/TO/Output"     # 结果输出文件夹
+sample: "germline"               # 样本编号
+pair:                         # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
 
 
 ######## 项目运行参数 ##########
 process:                                               # 流程设定值，不运行则不填写
   threads: 8                                           # 流程运行线程数
-  QC: "fastp"                                             # QC程序
-  Mapping: "bwa_mem"                                            # 比对程序
+  QC: "fastp"                                          # QC程序
+  Mapping:   "bwa_mem"                                 # 比对程序
   Mutation:                                            # 分析流程
-    SNV_indel: "freebayes"                                        # 变异检测
+    SNV_indel: "freebayes"                             # 变异检测
     CNV:                                               # CNV检测
     SV:                                                # SV检测
-  Annotation:                                          # 注释
+  Annotation:  "annovar"                               # 注释
   Other:                                               # 其他分析项目
     HLA:                                               # HLA分型分析
     MSI:                                               # MSI分析
@@ -30,31 +30,34 @@ process:                                               # 流程设定值，不�
 ########## 模块设定 ###########
 setting:
   QC:
+    UMI_loc: 
+    UMI_len: 
+    UMI_structure:
   Mapping:
     databases: "/home/bioinfo/ubuntu/database/hg19"
     reference: "/home/bioinfo/ubuntu/database/hg19/ucsc.hg19.fasta"
-    markDups: true
+    markDups: false
     removeDups: false
     recalibrate: true
     mills: "Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
     indel_1000g: "1000G_phase1.indels.hg19.sites.vcf"
-    snp_1000g: "1000G_phase1.snps.high_confidence.hg19.sites.vcf"
+    snp_1000g: "dbsnp_138.hg19.vcf"
   Mutation:
     pon:
     gatk_filter:
-      run: true
+      run: false                                       # 是否进行mutect2结果的过滤，注意，运行此步必须有bed文件
       small_exac: "small_exac_common_3_hg19.vcf"
     filter:
-      DP: 100
+      DP: 500
       QUAL: 20
-    Bed: "/home/bioinfo/ubuntu/database/hg19/Illumina_pt2.bed"
-    CNN: "/home/bioinfo/ubuntu/project/NCCL/cnv/normal.cnn"
+      MAF: 0.02
+    Bed: "small_panel_merge.bed"
+    CNN: 
     gnomad: "af-only-gnomad.raw.sites.hg19.vcf.gz"
   Annotation:
     humandb: "/home/bioinfo/ubuntu/database/humandb"
     buildver: "hg19"
-    MAF: 0.02
+    refFlat: "/home/bioinfo/ubuntu/database/hg19/hg19_refFlat.txt"
   Other:
-    MSIsensor2: "/home/bioinfo/ubuntu/software/msisensor2/models_hg19_GRCh37"
   Report:
   REMOVE_TMP: false

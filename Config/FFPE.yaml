@@ -1,12 +1,12 @@
 # 20210222
-# ctDNA项目标准化配置文件
-# ctDNA过滤深度设定为2000X，突变丰度为0.001
+# FFPE项目标准化配置文件
+# FFPE过滤深度设定为1000X，突变丰度为0.01
 
 ######## 项目基本信息 #########
-project: "LungYT"             # 定义项目
+project: "FFPE"             # 定义项目
 rawdata: "/PATH/TO/Rawdata"   # 原始数据存放文件夹
 output: "/PATH/TO/Output"     # 结果输出文件夹
-sample: "ctDNA"               # 样本编号
+sample: "FFPE"               # 样本编号
 pair:                         # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
 
 
@@ -16,9 +16,9 @@ process:                                               # 流程设定值，不�
   QC: "fastp"                                          # QC程序
   Mapping:   "bwa_mem"                                 # 比对程序
   Mutation:                                            # 分析流程
-    SNV_indel: "freebayes"                             # 变异检测
+    SNV_indel: "gatk_m2"                             # 变异检测
     CNV:                                               # CNV检测
-    SV: "manta"                                        # SV检测
+    SV:                                                # SV检测
   Annotation:  "annovar"                               # 注释
   Other:                                               # 其他分析项目
     HLA:                                               # HLA分型分析
@@ -30,13 +30,13 @@ process:                                               # 流程设定值，不�
 ########## 模块设定 ###########
 setting:
   QC:
-    UMI_loc: "per_read"
-    UMI_len: "4"
+    UMI_loc: 
+    UMI_len: 
     UMI_structure:
   Mapping:
     databases: "/home/bioinfo/ubuntu/database/hg19"
     reference: "/home/bioinfo/ubuntu/database/hg19/ucsc.hg19.fasta"
-    markDups: false
+    markDups: true
     removeDups: false
     recalibrate: true
     mills: "Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
@@ -48,9 +48,9 @@ setting:
       run: false                                       # 是否进行mutect2结果的过滤，注意，运行此步必须有bed文件
       small_exac: "small_exac_common_3_hg19.vcf"
     filter:
-      DP: 2000
+      DP: 1000
       QUAL: 20
-      MAF: 0.001
+      MAF: 0.01
     Bed: "small_panel_merge.bed"
     CNN: 
     gnomad: "af-only-gnomad.raw.sites.hg19.vcf.gz"

@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.16"
+__Version__ = "0.17"
 __Author__ = "pzweuj"
-__Date__ = "20210301"
+__Date__ = "20210304"
 
 """
 本程序为DNA自动化分析主流程，采用配置文件作为输入的方式运行程序，其中配置文件模板位于
@@ -160,6 +160,7 @@ def main(runInfo):
         elif SV_process.runApp == "manta":
             SV_process.manta()
             SV_process.manta_filter()
+            SV_process.manta_anno()
         else:
             print("未找到此SV检测方法")
 

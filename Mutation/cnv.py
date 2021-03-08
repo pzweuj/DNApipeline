@@ -62,7 +62,7 @@ class CNV(object):
 
         cnvkitResultsFile = open(tmpDir + "/" + sampleID + ".call.cns", "r")
         cnvkitResults = open(resultsDir + "/cnv/" + sampleID + ".cnvkit.txt", "w")
-        cnvkitResults.write("chromsome\tgene\tVAF\tlog2\tdepth\tp_ttest\tprobes\tweight\n")
+        cnvkitResults.write("chromsome\tstart\tend\tgene\tVAF\tlog2\tdepth\tp_ttest\tprobes\tweight\n")
         for line in cnvkitResultsFile:
             if line.startswith("chromosome"):
                 continue
@@ -75,18 +75,21 @@ class CNV(object):
                 log2 = lineAfterSplit[4]
                 VAF = lineAfterSplit[5]
                 depth = lineAfterSplit[6]
-                p_ttest = lineAfterSplit[7]
-                probes = lineAfterSplit[8]
-                weight = lineAfterSplit[9]
+                if "p_ttest" in line:
+                    p_ttest = lineAfterSplit[7]
+                    probes = lineAfterSplit[8]
+                    weight = lineAfterSplit[9]
+                else:
+                    p_ttest = "-"
+                    probes = lineAfterSplit[7]
+                    weight = lineAfterSplit[8]
 
                 if gene == "-":
-                    continue
-                elif "," in gene:
                     continue
                 elif VAF == "2":
                     continue
                 else:
-                    filter_output = [chrom, gene, VAF, log2, depth, p_ttest, probes, weight]
+                    filter_output = [chrom, start, end, gene, VAF, log2, depth, p_ttest, probes, weight]
                     outputString = "\t".join(filter_output)
                     cnvkitResults.write(outputString)
         cnvkitResults.close()

@@ -112,7 +112,7 @@ class Annotation(object):
 
     # annovar
     # https://annovar.openbioinformatics.org/en/latest/
-    def annovar(self):
+    def annovar(self): 
         humandb = self.runningInfo["setting"]["Annotation"]["humandb"]
         buildver = self.runningInfo["setting"]["Annotation"]["buildver"]
         resultsDir = self.output

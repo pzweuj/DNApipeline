@@ -1,9 +1,10 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.17"
+__Version__ = "0.19"
 __Author__ = "pzweuj"
-__Date__ = "20210304"
+__Date__ = "20210308"
+
 
 """
 本程序为DNA自动化分析主流程，采用配置文件作为输入的方式运行程序，其中配置文件模板位于
@@ -190,6 +191,10 @@ def main(runInfo):
         print("使用线程数 " + MSI_process.threads)
         if MSI_process.runApp == "msisensor2":
             MSI_process.msisensor2()
+        elif MSI_process.runApp == "msisensor_pro":
+        	MSI_process.msisensor_pro()
+        elif MSI_process.runApp == "msisensor_ct":
+        	MSI_process.msisensor_ct()
         else:
             print("未找到此MSI分析方法")
 

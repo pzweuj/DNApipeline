@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.1"
+__Version__ = "0.11"
 __Author__ = "pzweuj"
-__Date__ = "20210308"
+__Date__ = "20210309"
 
 import os
 import sys

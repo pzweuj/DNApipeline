@@ -49,7 +49,6 @@ class CNV(object):
                 -d {tmpDir} \\
                 -m hybrid \\
                 --diagram --scatter -p {threads}
-            cp {tmpDir}/{sampleID}.call.cns {resultsDir}/cnv/{sampleID}.cnvkit.cns
         """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, referenceCnn=referenceCnn, threads=threads)
         print(cmd)
         os.system(cmd)
@@ -90,7 +89,7 @@ class CNV(object):
                     continue
                 else:
                     filter_output = [chrom, start, end, gene, VAF, log2, depth, p_ttest, probes, weight]
-                    outputString = "\t".join(filter_output)
+                    outputString = "\t".join(filter_output) + "\n"
                     cnvkitResults.write(outputString)
         cnvkitResults.close()
         cnvkitResultsFile.close()

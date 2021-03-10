@@ -46,7 +46,8 @@ class MSI(object):
                 -t {resultsDir}/bam/{sampleID}.bam \\
                 -o {tmpDir}/{sampleID}
             mv {tmpDir}/{sampleID} {tmpDir}/{sampleID}.txt
-
+            cp {tmpDir}/{sampleID}.txt {resultsDir}/msi/{sampleID}.MSIsensorp.txt
+            
         """.format(msi_list=msi_list, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir)
         print(cmd)
         os.system(cmd)

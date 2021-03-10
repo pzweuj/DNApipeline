@@ -26,7 +26,7 @@ from Mutation.cnv import CNV
 from Mutation.sv import SV
 from Annotation.anno import Annotation
 from Other.msi import MSI
-
+from Other.hla import HLA
 
 def main(runInfo):
     # 基本信息获取
@@ -63,6 +63,7 @@ def main(runInfo):
     CNV_ = process["Mutation"]["CNV"]
     Annotation_ = process["Annotation"]
     MSI_ = process["Other"]["MSI"]
+    HLA_ = process["Other"]["HLA"]
 
     # 质控
     if QC_ == None:
@@ -198,8 +199,22 @@ def main(runInfo):
         else:
             print("未找到此MSI分析方法")
 
+    ## HLA
+    if HLA_ == None:
+        print("根据设定不进行HLA分析")
+    else:
+        HLA_process = HLA(runningInformation)
+        print("使用 " + HLA_process.runApp + "  进行HLA分型分析")
+        print("检测后文件输出目录： " + HLA_process.output + "/HLA")
+        print("使用线程数 " + HLA_process.threads)
+        if HLA_process.runApp == "hlahd":
+            HLA_process.hlahd()
+        else:
+            print("未找到此HLA分析方法")
 
 
+    # 合并结果到excel表中
+    mergeResultsToExcel(output, sample)
 
     # 删除中间文件
     if runningInformation["setting"]["REMOVE_TMP"]:

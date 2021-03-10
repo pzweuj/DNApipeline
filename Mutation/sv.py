@@ -274,7 +274,7 @@ class SV(object):
         refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
 
         svFile = open(resultsDir + "/sv/" + sampleID + ".sv.vcf", "r")
-        svAnno = open(resultsDir + "/sv/" + sampleID + ".ann.txt", "w")
+        svAnno = open(resultsDir + "/sv/" + sampleID + ".manta.txt", "w")
         svAnno.write("chrom1\tbreakpoint1\tgene1\tchrom2\tbreakpoint2\tgene2\tfusionType\tAlt\tgeneSymbol\tPR\tSR\tDP\tVAF\tExon\tTranscript\n")
         for line in svFile:
             if line.startswith("#"):

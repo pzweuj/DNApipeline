@@ -50,7 +50,7 @@ class Annotation(object):
             if line.startswith("Chr"):
                 lineAfterSplit = line.split("\t")
                 outputList = []
-                for i in range(86):
+                for i in range(89):
                     need = lineAfterSplit[i]
                     outputList.append(need)
                 outputList.append("GT")
@@ -68,8 +68,8 @@ class Annotation(object):
                 Ref = lineAfterSplit[3]
                 Alt = lineAfterSplit[4]
                 ExonicFunc = lineAfterSplit[8]
-                FORMAT = lineAfterSplit[94].split(":")
-                FORMAT_results = lineAfterSplit[95].split(":")
+                FORMAT = lineAfterSplit[97].split(":")
+                FORMAT_results = lineAfterSplit[98].split(":")
 
                 Format_list_zipped = zip(FORMAT, FORMAT_results)
                 Format_list = list(Format_list_zipped)
@@ -85,7 +85,7 @@ class Annotation(object):
                 AF = "%.2f" % ((float(Alt_AD) / float(DP)) * 100) + "%"
 
                 outputList = []
-                for i in range(86):
+                for i in range(89):
                     need = lineAfterSplit[i]
                     outputList.append(need)
 
@@ -128,8 +128,8 @@ class Annotation(object):
             table_annovar.pl {tmpDir}/{sampleID}.avinput \\
                 {humandb} -buildver {buildver} \\
                 -out {resultsDir}/annotation/{sampleID} -remove \\
-                -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210131,dbnsfp41a,cosmic70 \\
-                -operation g,r,f,f,f,f,f \\
+                -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210308,JaxCkb,Civic,dbnsfp41a,cosmic70 \\
+                -operation g,r,f,f,f,f,f,f,f \\
                 -nastring - -thread {threads} -otherinfo
         """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
         print(cmd)

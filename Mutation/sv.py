@@ -28,6 +28,11 @@ class SV(object):
         self.reference = runningInfo["setting"]["Mapping"]["reference"]
         self.bed = runningInfo["setting"]["Mutation"]["Bed"]
 
+        if runningInfo["setting"]["QC"]["UMI_loc"] != None:
+            self.bam = self.output + "/tempFile/bwa_" + self.sample + "/" + self.sample + ".bam"
+            if not os.path.exists(self.bam):
+                self.bam = self.output + "/bam/" + self.sample + ".bam"
+
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
         mkdir(self.output + "/sv")
@@ -40,33 +45,34 @@ class SV(object):
         resultsDir = self.output
         sampleID = self.sample
         threads = self.threads
+        bamFile = self.bam
 
         tmpDir = resultsDir + "/tempFile/lumpy_" + sampleID
         mkdir(tmpDir)
 
         cmd = """
-            samtools view -bh -F 1294 {resultsDir}/bam/{sampleID}.bam \\
+            samtools view -bh -F 1294 {bamFile} \\
                 | samtools sort -@ {threads} - \\
                 -o {tmpDir}/{sampleID}.discordants.bam
             samtools index {tmpDir}/{sampleID}.discordants.bam
-            samtools view -h {resultsDir}/bam/{sampleID}.bam \\
+            samtools view -h {bamFile} \\
                 | extractSplitReads_BwaMem \\
                 -i stdin \\
                 | samtools view -bSh - \\
                 | samtools sort -@ {threads} - \\
                 -o {tmpDir}/{sampleID}.splitters.bam
             samtools index {tmpDir}/{sampleID}.splitters.bam
-            lumpyexpress -B {resultsDir}/bam/{sampleID}.bam \\
+            lumpyexpress -B {bamFile} \\
                 -D {tmpDir}/{sampleID}.discordants.bam \\
                 -S {tmpDir}/{sampleID}.splitters.bam \\
                 -o {tmpDir}/{sampleID}.lumpy.vcf
             svtyper-sso \\
                 -i {tmpDir}/{sampleID}.lumpy.vcf \\
-                -B {resultsDir}/bam/{sampleID}.bam \\
+                -B {bamFile} \\
                 --cores {threads} \\
                 -o {tmpDir}/{sampleID}.gt.vcf
             cp {tmpDir}/{sampleID}.gt.vcf {resultsDir}/sv/{sampleID}.vcf
-        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
+        """.format(bamFile=bamFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
         print(cmd)
         os.system(cmd)
 
@@ -76,7 +82,7 @@ class SV(object):
     def manta(self):
         manta = "/mnt/d/ubuntu/software/manta-1.6.0.centos6_x86_64/bin/configManta.py"
         reference = self.reference
-        tumorBam = self.output + "/bam/" + self.sample + ".bam"
+        tumorBam = self.bam
         resultsDir = self.output
         sampleID = self.sample
 

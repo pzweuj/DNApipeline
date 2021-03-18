@@ -74,7 +74,8 @@ class SNV_Indel(object):
                 -pon {pon} \\
                 --native-pair-hmm-threads {threads} \\
                 -L {bedFile} \\
-                -A Coverage -A GenotypeSummaries
+                -A Coverage -A GenotypeSummaries \\
+                --genotype-germline-sites true
             cp {tmpDir}/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
         """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
         print(cmd)

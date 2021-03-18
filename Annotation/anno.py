@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.16"
+__Version__ = "0.17"
 __Author__ = "pzweuj"
-__Date__ = "20210304"
+__Date__ = "20210317"
 
 import os
 import sys
@@ -128,7 +128,7 @@ class Annotation(object):
             table_annovar.pl {tmpDir}/{sampleID}.avinput \\
                 {humandb} -buildver {buildver} \\
                 -out {resultsDir}/annotation/{sampleID} -remove \\
-                -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210308,JaxCkb,Civic,OncoKB,dbnsfp41a,cosmic70 \\
+                -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210308,JaxCkb,Civic,OncoKB,dbnsfp41a,cosmic92_coding \\
                 -operation g,r,f,f,f,f,f,f,f,f \\
                 -nastring - -thread {threads} -otherinfo
         """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)

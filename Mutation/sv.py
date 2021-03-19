@@ -32,6 +32,8 @@ class SV(object):
             self.bam = self.output + "/tempFile/bwa_" + self.sample + "/" + self.sample + ".bam"
             if not os.path.exists(self.bam):
                 self.bam = self.output + "/bam/" + self.sample + ".bam"
+        else:
+            self.bam = self.output + "/bam/" + self.sample + ".bam"
 
         mkdir(self.output)
         mkdir(self.output + "/tempFile")

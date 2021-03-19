@@ -1,30 +1,46 @@
-# 20210222
-# FFPE项目标准化配置文件
-# FFPE过滤深度设定为1000X，突变丰度为0.01
+# 20210319
+# 配置文件
+# v1.0
+# 用于进行项目分析配置
 
 ######## 项目基本信息 #########
-project: "FFPE"             # 定义项目
-rawdata: "/home/bioinfo/ubuntu/project/Test_20210308/Rawdata"   # 原始数据存放文件夹
-output: "/home/bioinfo/ubuntu/project/Test_20210308/Output"     # 结果输出文件夹
-sample: "test"               # 样本编号
-pair:                         # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
+project: "Chem"                                                 # 定义项目
+rawdata: "/home/bioinfo/ubuntu/project/Test_20210319/rawdata"   # 原始数据存放文件夹
+output: "/home/bioinfo/ubuntu/project/Test_20210319/output"     # 结果输出文件夹
+sample: "test"                                         # 样本编号
+pair:                                                           # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
 
+####### 临床/收样信息 #########
+clinical:
+  sampleID: "test"
+  name: "测试"
+  gender: "男"
+  age: "52岁"
+  send: "-"
+  office: "-"
+  doctor: "-"
+  type: "蜡卷"
+  diagnosis: "肺癌"
+  orign_id: "-"
+  collect_date: "2021.03.19"
+  p_id: "test"
+  report_date: "2021.03.19"
 
 ######## 项目运行参数 ##########
 process:                                               # 流程设定值，不运行则不填写
   threads: 8                                           # 流程运行线程数
-  QC: "fastp"                                          # QC程序
-  Mapping:   "bwa_mem"                                 # 比对程序
+  QC:  "fastp"                                                # QC程序
+  Mapping:  "bwa_mem"                                           # 比对程序
   Mutation:                                            # 分析流程
-    SNV_indel: "gatk_m2"                               # 变异检测
-    CNV: "cnvkit"                                      # CNV检测
+    SNV_indel:  "gatk_m2"                                       # 变异检测
+    CNV:                                               # CNV检测
     SV:  "manta"                                       # SV检测
-  Annotation:  "annovar"                               # 注释
+  Annotation: "annovar"                                # 注释
   Other:                                               # 其他分析项目
     HLA:                                               # HLA分型分析
-    MSI:  "msisensor_pro"                              # MSI分析
+    MSI:                                               # MSI分析
     TMB:                                               # TMB分析
-  Report: false                                        # 是否生成报告
+  Report: true                                        # 是否生成报告
 
 
 ########## 模块设定 ###########
@@ -51,8 +67,8 @@ setting:
       DP: 1000
       QUAL: 20
       MAF: 0.01
-    Bed: "small_panel_merge.bed"
-    CNN: "/home/bioinfo/ubuntu/project/Test_20210308/Config/normal.cnn"
+    Bed: "/home/bioinfo/ubuntu/project/Test_20210318/config/small_panel_merge.bed"
+    CNN: 
     gnomad: "af-only-gnomad.raw.sites.hg19.vcf.gz"
   Annotation:
     humandb: "/home/bioinfo/ubuntu/database/humandb"

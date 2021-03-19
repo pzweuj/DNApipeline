@@ -220,6 +220,36 @@ def main(runInfo):
     if runningInformation["setting"]["REMOVE_TMP"]:
         shutil.rmtree(output + "/tempFile")
 
+    # 报告
+    if runningInformation["process"]["Report"]:
+        if project == "Chem":
+            print("正在生成 " + project + " 项目报告")
+            runningPath = getAbsPath()
+            cmd = """
+                python3 {runningPath}/../Report/Report_Chem.py {resultsDir} {sampleID} {runInfo}
+            """.format(runningPath=runningPath, resultsDir=output, sampleID=sample, runInfo=runInfo)
+            print(cmd)
+            os.system(cmd)
+        
+        if project == "93Genes":
+            pass
+
+        if project == "Pancancer":
+            pass
+
+        if project == "Lung":
+            pass
+
+        if project == "Colon":
+            pass
+
+        if project == "BRCA":
+            pass
+
+    else:
+        print("根据设定不进行报告输出")
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DNA Pipeline",

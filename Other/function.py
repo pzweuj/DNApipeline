@@ -11,6 +11,7 @@ import time
 import sys
 import yaml
 from openpyxl import Workbook
+from docx2pdf import convert
 
 # 配置文件读入
 def getRunningInfo(runInfo):
@@ -70,7 +71,7 @@ def mergeResultsToExcel(resultsDir, sampleID):
         if len(qc) != 0:
             for q in qc:
                 content = read_txt(resultsDir + "/QC/" + q)
-                ws_qc = wb.create_sheet(q.replace(".txt", ""))
+                ws_qc = wb.create_sheet(q.replace(".txt", "").replace(sampleID + ".", ""))
                 write_excel(ws_qc, content)
 
     if "annotation" in dir_list:
@@ -78,7 +79,7 @@ def mergeResultsToExcel(resultsDir, sampleID):
         if len(anno) != 0:
             for a in anno:
                 content = read_txt(resultsDir + "/annotation/" + a)
-                ws_anno = wb.create_sheet(a.replace(".txt", ""))
+                ws_anno = wb.create_sheet(a.replace(".txt", "").replace(sampleID + ".", ""))
                 write_excel(ws_anno, content)
 
     if "cnv" in dir_list:
@@ -86,7 +87,7 @@ def mergeResultsToExcel(resultsDir, sampleID):
         if len(cnv) != 0:
             for c in cnv:
                 content = read_txt(resultsDir + "/cnv/" + c)
-                ws_cnv = wb.create_sheet(c.replace(".txt", ""))
+                ws_cnv = wb.create_sheet(c.replace(".txt", "").replace(sampleID + ".", ""))
                 write_excel(ws_cnv, content)
 
     if "sv" in dir_list:
@@ -95,7 +96,7 @@ def mergeResultsToExcel(resultsDir, sampleID):
             for s in sv:
                 if ".txt" in s:
                     content = read_txt(resultsDir + "/sv/" + s)
-                    ws_sv = wb.create_sheet(s.replace(".txt", ""))
+                    ws_sv = wb.create_sheet(s.replace(".txt", "").replace(sampleID + ".", ""))
                     write_excel(ws_sv, content)
 
     if "msi" in dir_list:
@@ -103,9 +104,13 @@ def mergeResultsToExcel(resultsDir, sampleID):
         if len(msi) != 0:
             for m in msi:
                 content = read_txt(resultsDir + "/msi/" + m)
-                ws_msi = wb.create_sheet(m.replace(".txt", ""))
+                ws_msi = wb.create_sheet(m.replace(".txt", "").replace(sampleID + ".", ""))
                 write_excel(ws_msi, content)
 
     wb.remove(wb["Sheet"])
     wb.save(resultsDir + "/" + sampleID + ".xlsx")
     print(sampleID + " 结果已汇总到excel表格中： " + resultsDir + "/" + sampleID + ".xlsx")
+
+
+def convertDOCX2PDF(input, output):
+    convert(input, output)

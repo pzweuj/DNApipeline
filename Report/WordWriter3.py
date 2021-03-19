@@ -234,6 +234,7 @@ def WordWriter(inputDocx, outputDocx, replaceDict):
             header(document, i, replaceDict[i])
 
         else:
+            print(i)
             replaceParagraphString(document, i, replaceDict[i])
     document.save(outputDocx)
 

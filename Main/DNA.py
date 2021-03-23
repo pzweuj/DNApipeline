@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.19"
+__Version__ = "1.00"
 __Author__ = "pzweuj"
-__Date__ = "20210308"
+__Date__ = "20210322"
 
 
 """
@@ -238,7 +238,13 @@ def main(runInfo):
             pass
 
         if project == "Lung":
-            pass
+            print("正在生成 " + project + " 项目报告")
+            runningPath = getAbsPath()
+            cmd = """
+                python3 {runningPath}/../Report/Report_Lung.py {resultsDir} {sampleID} {runInfo}
+            """.format(runningPath=runningPath, resultsDir=output, sampleID=sample, runInfo=runInfo)
+            print(cmd)
+            os.system(cmd)
 
         if project == "Colon":
             pass
@@ -257,7 +263,7 @@ if __name__ == "__main__":
         usage="python3 DNA.py -i <Config Yaml File>")
     group = parser.add_mutually_exclusive_group()
     parser.add_argument("-v", "--version", action="version",
-        version="Version 0.1 20210222")
+        version="Version 1.0 20210322")
     parser.add_argument("-i", "--input", type=str,
         help="输入配置文件")
 

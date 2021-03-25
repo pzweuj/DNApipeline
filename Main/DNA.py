@@ -192,7 +192,7 @@ def main(runInfo):
         print("使用线程数 " + MSI_process.threads)
         if MSI_process.runApp == "msisensor2":
             MSI_process.msisensor2()
-        elif MSI_process.runApp == "msisensor_pro":
+        elif MSI_process.runApp == "msisensor_pro" or MSI_process.runApp == "msisensorpro":
         	MSI_process.msisensor_pro()
         elif MSI_process.runApp == "msisensor_ct":
         	MSI_process.msisensor_ct()

@@ -36,20 +36,33 @@ class CNV(object):
     def cnvkit(self):
         resultsDir = self.output
         sampleID = self.sample
-        referenceCnn = self.runningInfo["setting"]["Mutation"]["CNN"]
+        CNV = self.runningInfo["setting"]["Mutation"]["CNV"]
+        baseline = CNV["baseline"]
+        target = CNV["target"]
+        antitarget = CNV["antitarget"]
         threads = self.threads
 
+        mkdir(resultsDir + "/cnv")
         tmpDir = resultsDir + "/tempFile/cnvkit_" + sampleID
         mkdir(tmpDir)
 
         cmd = """
-            cnvkit.py batch \\
-                {resultsDir}/bam/{sampleID}.bam \\
-                -r {referenceCnn} \\
-                -d {tmpDir} \\
-                -m hybrid \\
-                --diagram --scatter -p {threads}
-        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, referenceCnn=referenceCnn, threads=threads)
+            cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
+                {target} -o {tmpDir}/{sampleID}.targetcoverage.cnn
+            cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
+                {antitarget} -o {tmpDir}/{sampleID}.antitargetcoverage.cnn
+            cnvkit.py fix {tmpDir}/{sampleID}.targetcoverage.cnn \
+                {tmpDir}/{sampleID}.antitargetcoverage.cnn \
+                {baseline} -o {tmpDir}/{sampleID}.cnr
+            cnvkit.py segment {tmpDir}/{sampleID}.cnr \
+                -o {tmpDir}/{sampleID}.cns
+            cnvkit.py call {tmpDir}/{sampleID}.cns \
+                -o {tmpDir}/{sampleID}.call.cns
+            cnvkit.py scatter {tmpDir}/{sampleID}.cnr \
+                -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.scatter.pdf
+            cnvkit.py diagram {tmpDir}/{sampleID}.cnr \
+                -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.diagram.pdf
+        """.format(resultsDir=resultsDir, sampleID=sampleID, target=target, tmpDir=tmpDir, antitarget=antitarget, baseline=baseline)
         print(cmd)
         os.system(cmd)
 
@@ -89,7 +102,7 @@ class CNV(object):
                     continue
                 else:
                     filter_output = [chrom, start, end, gene, VAF, log2, depth, p_ttest, probes, weight]
-                    outputString = "\t".join(filter_output) + "\n"
+                    outputString = "\t".join(filter_output)
                     cnvkitResults.write(outputString)
         cnvkitResults.close()
         cnvkitResultsFile.close()

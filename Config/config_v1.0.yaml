@@ -67,8 +67,11 @@ setting:
       DP: 1000
       QUAL: 20
       MAF: 0.01
-    Bed: "/home/bioinfo/ubuntu/project/Test_20210318/config/small_panel_merge.bed"
-    CNN: 
+    Bed: "/home/bioinfo/ubuntu/database/hg19/cnv/t.bed"
+    CNV:
+      target: "/home/bioinfo/ubuntu/database/hg19/cnv/t.target.bed"
+      antitarget: "/home/bioinfo/ubuntu/database/hg19/cnv/t.antitarget.bed"
+      baseline: "/home/bioinfo/ubuntu/database/hg19/cnv/reference.t.cnn"
     gnomad: "af-only-gnomad.raw.sites.hg19.vcf.gz"
   Annotation:
     humandb: "/home/bioinfo/ubuntu/database/humandb"

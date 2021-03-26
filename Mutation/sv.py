@@ -404,17 +404,32 @@ class SV(object):
         print(cmd)
         os.system(cmd)
 
+    # STAR-Fusion
+    # https://github.com/STAR-Fusion/STAR-Fusion/wiki
     def star_fusion(self):
         pass
 
+    # subread
+    # http://subread.sourceforge.net/
     def subread_junction(self):
         pass
 
+    # breakdancer
+    # https://github.com/genome/breakdancer
     def breakdancer(self):
         pass
 
-    def crest(self):
+    # gridss
+    # https://github.com/PapenfussLab/gridss
+    def gridss(self):
         pass
 
-    def svict(self):
+    # delly
+    # https://github.com/dellytools/delly
+    def delly(self):
+        pass
+
+    # genefuse
+    # https://github.com/OpenGene/GeneFuse
+    def genefuse(self):
         pass

@@ -128,6 +128,8 @@ def main(runInfo):
             SnvIndel_process.freebayes()
         elif SnvIndel_process.runApp == "gatk_haplotypecaller":
             SnvIndel_process.gatk_haplotypecaller()
+        elif SnvIndel_process.runApp == "pisces":
+            SnvIndel_process.pisces()
         else:
             print("未找到此变异检测方法")
         print("全局过滤")
@@ -218,7 +220,16 @@ def main(runInfo):
 
     # 删除中间文件
     if runningInformation["setting"]["REMOVE_TMP"]:
-        shutil.rmtree(output + "/tempFile")
+        tmpDirReady = os.listdir(output + "/tempFile")
+        if len(tmpDirReady) != 0:
+            for t in tmpDirReady:
+                if sample in t:
+                    tmpDirReadyToRemove = output + "/tempFile/" + t
+                    if os.path.isdir(tmpDirReadyToRemove):
+                        shutil.rmtree(tmpDirReadyToRemove)
+        else:
+            shutil.rmtree(output + "/tempFile")
+
 
     # 报告
     if runningInformation["process"]["Report"]:

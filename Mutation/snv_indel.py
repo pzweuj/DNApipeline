@@ -113,8 +113,62 @@ class SNV_Indel(object):
     def vardict(self):
         pass
 
-    def strelka(self):
-        pass
+    # pisces
+    # https://github.com/Illumina/Pisces
+    def pisces(self):
+        """
+        需建立索引
+        dotnet CreateGenomeSizeFile.dll \
+            -g hg19/ \
+            -s "Homo sapiens (UCSC hg19)" \
+            -o hg19/
+        """
+        database = self.databases
+        resultsDir = self.output
+        sampleID = self.sample
+        bedFile = self.bed
+        threads = self.threads
+        minDP = self.filtDP
+        minMAF = self.MAF
+
+        piscesBin = "/home/bioinfo/ubuntu/software/Pisces_5.2.10.49/Pisces.dll"
+
+        tmpDir = resultsDir + "/tempFile/pisces_" + sampleID
+        mkdir(tmpDir)
+
+        if bedFile != None:
+            cmd = """
+                dotnet {piscesBin} -b {resultsDir}/bam/{sampleID}.bam \\
+                    -g {database} \\
+                    -o {tmpDir} \\
+                    -t {threads} \\
+                    -i {bedFile} \\
+                    --mindp {minDP} \\
+                    --minvf {minMAF}
+            """.format(bedFile=bedFile, minDP=minDP, minMAF=minMAF, piscesBin=piscesBin, resultsDir=resultsDir, sampleID=sampleID, database=database, tmpDir=tmpDir, threads=threads)
+        else:
+            cmd = """
+                dotnet {piscesBin} -b {resultsDir}/bam/{sampleID}.bam \\
+                    -g {database} \\
+                    -o {tmpDir} \\
+                    -t {threads} \\
+                    --mindp {minDP} \\
+                    --minvf {minMAF}
+            """.format(minDP=minDP, minMAF=minMAF, piscesBin=piscesBin, resultsDir=resultsDir, sampleID=sampleID, database=database, tmpDir=tmpDir, threads=threads)
+        print(cmd)
+        os.system(cmd)
+
+        filt = """
+            bcftools view \\
+                -e "GT='0/0'" \\
+                {tmpDir}/{sampleID}.genome.vcf > {tmpDir}/{sampleID}.muts.vcf
+            bcftools view \\
+                -i "FILTER='PASS' | FILTER='.'" \\
+                {tmpDir}/{sampleID}.muts.vcf > {tmpDir}/{sampleID}.pisces.vcf
+            cp {tmpDir}/{sampleID}.pisces.vcf {resultsDir}/vcf/{sampleID}.vcf
+        """.format(tmpDir=tmpDir, sampleID=sampleID, resultsDir=resultsDir)
+        print(filt)
+        os.system(filt)
 
     # bcftools
     # http://samtools.github.io/bcftools/bcftools.html
@@ -162,7 +216,8 @@ class SNV_Indel(object):
                     > {tmpDir}/{sampleID}.freebayes.vcf
                 sed -i "s/0\\/0/0\\/1/g" {tmpDir}/{sampleID}.freebayes.vcf
                 cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
-            """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)            
+            """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+
         print(cmd)
         os.system(cmd)
 

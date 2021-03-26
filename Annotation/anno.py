@@ -90,7 +90,7 @@ class Annotation(object):
                     outputList.append(need)
 
                 outputList.append(GT)
-                outputList.append(DP)       
+                outputList.append(DP)
                 outputList.append(Ref_AD)
                 outputList.append(Alt_AD)
                 outputList.append(AF)

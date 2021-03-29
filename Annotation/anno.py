@@ -82,7 +82,10 @@ class Annotation(object):
                 AD = Format_dict["AD"].split(",")
                 Ref_AD = AD[0]
                 Alt_AD = AD[1]
-                AF = "%.2f" % ((float(Alt_AD) / float(DP)) * 100) + "%"
+                try:
+                    AF = "%.2f" % ((float(Alt_AD) / float(DP)) * 100) + "%"
+                except Exception:
+                    AF = "-"
 
                 outputList = []
                 for i in range(90):

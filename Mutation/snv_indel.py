@@ -145,7 +145,8 @@ class SNV_Indel(object):
                     -t {threads} \\
                     -i {bedFile} \\
                     --mindp {minDP} \\
-                    --minvf {minMAF}
+                    --minvf {minMAF} \\
+                    --minvq 0 --threadbychr true
             """.format(bedFile=bedFile, minDP=minDP, minMAF=minMAF, piscesBin=piscesBin, resultsDir=resultsDir, sampleID=sampleID, database=database, tmpDir=tmpDir, threads=threads)
         else:
             cmd = """
@@ -154,17 +155,18 @@ class SNV_Indel(object):
                     -o {tmpDir} \\
                     -t {threads} \\
                     --mindp {minDP} \\
-                    --minvf {minMAF}
+                    --minvf {minMAF} \\
+                    --minvq 0 --threadbychr true
             """.format(minDP=minDP, minMAF=minMAF, piscesBin=piscesBin, resultsDir=resultsDir, sampleID=sampleID, database=database, tmpDir=tmpDir, threads=threads)
         print(cmd)
         os.system(cmd)
 
         filt = """
             bcftools view \\
-                -e "GT='0/0'" \\
+                -e "GT='0/0' | GT='./.' | GT='0/.'" \\
                 {tmpDir}/{sampleID}.genome.vcf > {tmpDir}/{sampleID}.muts.vcf
             bcftools view \\
-                -i "FILTER='PASS' | FILTER='.'" \\
+                -e "FILTER='LowDP'" \\
                 {tmpDir}/{sampleID}.muts.vcf > {tmpDir}/{sampleID}.pisces.vcf
             cp {tmpDir}/{sampleID}.pisces.vcf {resultsDir}/vcf/{sampleID}.vcf
         """.format(tmpDir=tmpDir, sampleID=sampleID, resultsDir=resultsDir)

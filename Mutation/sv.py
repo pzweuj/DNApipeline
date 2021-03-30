@@ -68,15 +68,92 @@ class SV(object):
                 -D {tmpDir}/{sampleID}.discordants.bam \\
                 -S {tmpDir}/{sampleID}.splitters.bam \\
                 -o {tmpDir}/{sampleID}.lumpy.vcf
-            svtyper-sso \\
-                -i {tmpDir}/{sampleID}.lumpy.vcf \\
-                -B {bamFile} \\
-                --cores {threads} \\
-                -o {tmpDir}/{sampleID}.gt.vcf
-            cp {tmpDir}/{sampleID}.gt.vcf {resultsDir}/sv/{sampleID}.vcf
+            # svtyper-sso \\
+            #    -i {tmpDir}/{sampleID}.lumpy.vcf \\
+            #    -B {bamFile} \\
+            #    --cores {threads} \\
+            #    -o {tmpDir}/{sampleID}.gt.vcf
+            # cp {tmpDir}/{sampleID}.gt.vcf {resultsDir}/sv/{sampleID}.vcf
         """.format(bamFile=bamFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
         print(cmd)
         os.system(cmd)
+
+    def lumpy_filter(self):
+        resultsDir = self.output
+        sampleID = self.sample
+        bamFile = self.bam
+
+        tmpDir = resultsDir + "/tempFile/lumpy_" + sampleID
+        lumpyResultsFile = tmpDir + "/" + sampleID + ".lumpy.vcf"
+
+        filterDP = self.runningInfo["setting"]["Mutation"]["filter"]["DP"]
+        filterVAF = self.runningInfo["setting"]["Mutation"]["filter"]["MAF"]
+        filterAlt = int(filterDP * filterVAF)
+
+        lumpyResults = open(lumpyResultsFile, "r")
+        lumpyResultsFilter = open(lumpyResultsFile.replace(".vcf", ".filter.vcf"), "w")
+        for line in lumpyResults:
+            # print(line)
+            if line.startswith("#"):
+                lumpyResultsFilter.write(line)
+            else:
+                if not "SVTYPE=BND" in line:
+                    continue
+
+                lineAfterSplit = line.split("\n")[0].split("\t")
+                chrom1 = lineAfterSplit[0]
+                pos1 = lineAfterSplit[1]
+                alt = lineAfterSplit[4]
+                if alt[0:2] == "N[":
+                    chrom2s = alt.replace("N[", "").replace("[", "")
+                elif alt[0:2] == "N]":
+                    chrom2s = alt.replace("N]", "").replace("]", "")
+                elif alt[-2:] == "[N":
+                    chrom2s = alt.replace("[N", "").replace("[", "")
+                elif alt[-2:] == "]N":
+                    chrom2s = alt.replace("]N", "").replace("]", "")
+                else:
+                    continue
+
+                chrom2 = chrom2s.split(":")[0]
+                pos2 = chrom2s.split(":")[1]
+
+                FORMAT = "PR:SR"
+                FORMAT_info = lineAfterSplit[9]
+                infos = FORMAT_info.split(":")
+                PR_alt = infos[2]
+                SR_alt = infos[3]
+                check1 = chrom1 + ":" + pos1 + "-" + pos1
+                check2 = chrom2 + ":" + pos2 + "-" + pos2
+                
+                # 突变reads数过滤
+                if (int(PR_alt) + int(SR_alt)) < filterAlt:
+                    continue
+
+                dp1 = os.popen("samtools depth {bamFile} -r {check1}".format(bamFile=bamFile, check1=check1))
+                dp2 = os.popen("samtools depth {bamFile} -r {check2}".format(bamFile=bamFile, check2=check2))
+                for d1 in dp1.readlines():
+                    if d1.startswith("chr"):
+                        depth1 = d1.replace("\n", "").split("\t")[2]
+                for d2 in dp2.readlines():
+                    if d2.startswith("chr"):
+                        depth2 = d2.replace("\n", "").split("\t")[2]
+                DP = int(depth1) + int(depth2)
+                
+                # 深度过滤
+                if DP < filterDP:
+                    continue
+
+                print(line)
+                PR_ref = str(DP)
+                SR_ref = "0"
+                output = "\t".join(lineAfterSplit[0:8]) + "\t" + FORMAT + "\t" + PR_ref + "," + PR_alt + ":" + SR_ref + "," + SR_alt + "\n"
+                lumpyResultsFilter.write(output)
+        lumpyResultsFilter.close()
+        lumpyResults.close()
+        os.system("cp " + tmpDir + "/" + sampleID + ".lumpy.filter.vcf " + resultsDir + "/sv/" + sampleID + ".sv.vcf")
+
+
 
     # manta
     # https://github.com/Illumina/manta
@@ -160,7 +237,7 @@ class SV(object):
         mantaResults.close()
         os.system("cp " + tmpDir + "/" + sampleID + ".manta.filter.vcf " + resultsDir + "/sv/" + sampleID + ".sv.vcf")
 
-    # 自编manta注释
+    # 自编sv注释
     # 对数据库进行解析，数据库使用refFlat，可通过ucsc直接下载
     def checkFusionHotSpot(self):
         database = self.runningInfo["setting"]["Annotation"]["refFlat"]
@@ -276,13 +353,14 @@ class SV(object):
         db.close()
         return [output, ts_output]
 
-    def manta_anno(self):
+    def sv_anno(self):
         sampleID = self.sample
         resultsDir = self.output
         refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
+        runApp = self.runApp
 
         svFile = open(resultsDir + "/sv/" + sampleID + ".sv.vcf", "r")
-        svAnno = open(resultsDir + "/sv/" + sampleID + ".manta.txt", "w")
+        svAnno = open(resultsDir + "/sv/" + sampleID + "." + runApp + ".txt", "w")
         svAnno.write("chrom1\tbreakpoint1\tgene1\tchrom2\tbreakpoint2\tgene2\tfusionType\tAlt\tgeneSymbol\tPR\tSR\tDP\tVAF\tExon\tTranscript\n")
         for line in svFile:
             if line.startswith("#"):

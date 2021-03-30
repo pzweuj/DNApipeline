@@ -161,10 +161,12 @@ def main(runInfo):
         print("使用线程数 " + SV_process.threads)
         if SV_process.runApp == "lumpy":
             SV_process.lumpy()
+            SV_process.lumpy_filter()
+            SV_process.sv_anno()
         elif SV_process.runApp == "manta":
             SV_process.manta()
             SV_process.manta_filter()
-            SV_process.manta_anno()
+            SV_process.sv_anno()
         else:
             print("未找到此SV检测方法")
 

@@ -119,8 +119,23 @@ class QC(object):
         fastpReport.close()
 
 
-    def cutadapt(self):
-        pass
-
+    # fastqc
+    # https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
     def fastqc(self):
-        pass
+        rawdataDir = self.rawdata
+        sampleID = self.sample
+        resultsDir = self.output
+        threads = self.threads
+
+        tmpDir = resultsDir + "/tempFile/fastqc_" + sampleID
+        mkdir(tmpDir)
+
+        cmd = """
+            fastqc \\
+                {rawdataDir}/{sampleID}_R1.fastq.gz \\
+                {rawdataDir}/{sampleID}_R2.fastq.gz \\
+                -t {threads} -o {tmpDir}
+        
+        """.format(rawdataDir=rawdataDir, sampleID=sampleID, threads=threads, tmpDir=tmpDir)
+        print(cmd)
+        os.system(cmd)

@@ -70,12 +70,22 @@ class HLA(object):
             hlahd.sh -t {threads} -m 100 -c 0.95 -f {freq} \\
                 {tmpDir}/{sampleID}.HLA.R1.fastq {tmpDir}/{sampleID}.HLA.R2.fastq \\
                 {split_file} {dictionary} {sampleID} {tmpDir}
-            cp {tmpDir}/{sampleID}/result/G3761_final.result.txt {resultsDir}/HLA/
+            cp {tmpDir}/{sampleID}/result/{sampleID}_final.result.txt {resultsDir}/HLA/
         """.format(threads=threads, freq=freq, split_file=split_file, dictionary=dictionary, resultsDir=resultsDir, sampleID=sampleID, extractRegion=extractRegion, tmpDir=tmpDir)
         print(cmd)
         os.system(cmd)
 
-
+    # seq2HLA
+    # https://github.com/TRON-Bioinformatics/seq2HLA
     def seq2hla(self):
         pass
     
+    # HLAreporter
+    # http://paed.hku.hk/genome/software.html
+    def hlareporter(self):
+    	pass
+
+    # HLAscan
+    # https://github.com/SyntekabioTools/HLAscan
+    def hlascan(self):
+    	pass

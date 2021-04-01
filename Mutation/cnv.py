@@ -107,12 +107,17 @@ class CNV(object):
         cnvkitResults.close()
         cnvkitResultsFile.close()
 
-
+    # conifer
+    # http://conifer.sourceforge.net/
     def conifer(self):
         pass
 
+    # freec
+    # http://boevalab.inf.ethz.ch/FREEC/
     def freec(self):
         pass
 
+    # cnvnator
+    # https://github.com/abyzovlab/CNVnator
     def cnvnator(self):
         pass

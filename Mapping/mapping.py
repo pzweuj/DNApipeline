@@ -69,12 +69,6 @@ class Mapping(object):
         print(cmd)
         os.system(cmd)
 
-    def subread(self):
-        pass
-
-    def bowtie2(self):
-        pass
-
     # gencore
     # https://github.com/OpenGene/gencore
     # 当使用fastp识别UMI时使用此方法进行去重
@@ -155,6 +149,31 @@ class Mapping(object):
             cp {tmpDir}/{sampleID}.BQSR.bam {resultsDir}/bam/{sampleID}.bam
             cp {tmpDir}/{sampleID}.BQSR.bai {resultsDir}/bam/{sampleID}.bam.bai
         """.format(tmpDir=tmpDir, snp=snp, mills=mills, indel_1000g=indel_1000g, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+        print(cmd)
+        os.system(cmd)
+
+
+    # Gemini
+    # https://github.com/Illumina/Pisces/wiki/Gemini-5.2.10-Design-Document
+    # 未测试
+    def gemini(self):
+        gemini_multi = "/home/bioinfo/ubuntu/software/GeminiMulti_5.2.10.49/GeminiMulti.dll"
+
+        databases = self.databases
+        resultsDir = self.output
+        sampleID = self.sample
+        threads = self.threads
+
+        tmpDir = resultsDir + "/tempFile/gemini_" + sampleID
+        mkdir(tmpDir)
+
+        cmd = """
+            dotnet {gemini_multi} -bam {resultsDir}/bam/{sampleID}.bam \\
+                -genome {databases} \\
+                --outFolder {tmpDir} \\
+                --numprocesses {threads} \\
+                --samtools /home/bioinfo/ubuntu/software/samtools-1.11
+        """.format(gemini_multi=gemini_multi, resultsDir=resultsDir, sampleID=sampleID, databases=databases, tmpDir=tmpDir, threads=threads)
         print(cmd)
         os.system(cmd)
 

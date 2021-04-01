@@ -88,12 +88,18 @@ class MSI(object):
         print(cmd)
         os.system(cmd)        
 
-    def visualMSI(self):
+    # visualMSI
+    # https://github.com/OpenGene/VisualMSI
+    def visualmsi(self):
         pass
 
-    def msing(self):
+    # mSINGS
+    # https://bitbucket.org/uwlabmed/msings
+    def msings(self):
         pass
 
+    # mantis
+    # https://github.com/OSU-SRLab/MANTIS
     def mantis(self):
         pass
 

@@ -108,9 +108,6 @@ class SNV_Indel(object):
         print(cmd)
         os.system(cmd)
 
-    def mutscan(self):
-        pass
-
     def vardict(self):
         pass
 
@@ -175,8 +172,36 @@ class SNV_Indel(object):
 
     # bcftools
     # http://samtools.github.io/bcftools/bcftools.html
+    # 未测试
     def bcftools(self):
-        pass
+        reference = self.reference
+        resultsDir = self.output
+        sampleID = self.sample
+        bedFile = self.bed
+        threads = self.threads
+
+        tmpDir = resultsDir + "/tempFile/bcftools_" + sampleID
+        mkdir(tmpDir)
+
+        if bedFile != None:
+            cmd = """
+                bcftools mpileup -f {reference} \\
+                    {resultsDir}/bam/{sampleID}.bam \\
+                    | bcftools call -mv -O v \\
+                    -o {tmpDir}/{sampleID}.bcftools.vcf \\
+                    -t {threads} -R {bedFile}
+            """.format(bedFile=bedFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir)
+        else:
+            cmd = """
+                bcftools mpileup -f {reference} \\
+                    {resultsDir}/bam/{sampleID}.bam \\
+                    | bcftools call -mv -O v \\
+                    -o {tmpDir}/{sampleID}.bcftools.vcf \\
+                    -t {threads}
+            """.format(bedFile=bedFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir)
+        print(cmd)
+        os.system(cmd)
+
 
     # freebayes
     # https://github.com/freebayes/freebayes

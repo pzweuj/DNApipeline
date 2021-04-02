@@ -54,6 +54,20 @@ def main(runInfo):
         else:
             continue
 
+    if pair != None:
+        print("使用配对样本模式！")
+        for fileName in os.listdir(rawdataDir):
+            if (pair + "_") in fileName:
+                print("已成功找到配对样本 " + fileName)
+                if "R1" in fileName:
+                    os.rename(rawdataDir + "/" + fileName, rawdataDir + "/" + pair + "_R1.fastq.gz")
+                elif "R2" in fileName:
+                    os.rename(rawdataDir + "/" + fileName, rawdataDir + "/" + pair + "_R2.fastq.gz")
+                else:
+                    continue
+            else:
+                continue
+
     # 运行信息获取
     threads_ = process["threads"]
     QC_ = process["QC"]
@@ -76,7 +90,6 @@ def main(runInfo):
         if QC_process.runApp == "fastp":
             QC_process.fastp()
             QC_process.fastp_filter()
-
         else:
             print("未找到此质控方法")
 
@@ -197,9 +210,9 @@ def main(runInfo):
         if MSI_process.runApp == "msisensor2":
             MSI_process.msisensor2()
         elif MSI_process.runApp == "msisensor_pro" or MSI_process.runApp == "msisensorpro":
-        	MSI_process.msisensor_pro()
+            MSI_process.msisensor_pro()
         elif MSI_process.runApp == "msisensor_ct":
-        	MSI_process.msisensor_ct()
+            MSI_process.msisensor_ct()
         else:
             print("未找到此MSI分析方法")
 
@@ -219,6 +232,8 @@ def main(runInfo):
 
     # 合并结果到excel表中
     mergeResultsToExcel(output, sample)
+    if pair != None:
+        mergeResultsToExcel(output, pair)
 
     # 删除中间文件
     if runningInformation["setting"]["REMOVE_TMP"]:
@@ -231,6 +246,18 @@ def main(runInfo):
                         shutil.rmtree(tmpDirReadyToRemove)
         else:
             shutil.rmtree(output + "/tempFile")
+
+    if pair != None:
+        if runningInformation["setting"]["REMOVE_TMP"]:
+            tmpDirReady = os.listdir(output + "/tempFile")
+            if len(tmpDirReady) != 0:
+                for t in tmpDirReady:
+                    if pair in t:
+                        tmpDirReadyToRemove = output + "/tempFile/" + t
+                        if os.path.isdir(tmpDirReadyToRemove):
+                            shutil.rmtree(tmpDirReadyToRemove)
+            else:
+                shutil.rmtree(output + "/tempFile")
 
 
     # 报告

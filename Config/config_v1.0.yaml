@@ -7,24 +7,24 @@
 project: "Chem"                                                 # 定义项目
 rawdata: "/home/bioinfo/ubuntu/project/Test_20210319/rawdata"   # 原始数据存放文件夹
 output: "/home/bioinfo/ubuntu/project/Test_20210319/output"     # 结果输出文件夹
-sample: "test"                                         # 样本编号
+sample:                                          # 样本编号
 pair:                                                           # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
 
 ####### 临床/收样信息 #########
 clinical:
-  sampleID: "test"
-  name: "测试"
-  gender: "男"
-  age: "52岁"
-  send: "-"
-  office: "-"
-  doctor: "-"
-  type: "蜡卷"
-  diagnosis: "肺癌"
-  orign_id: "-"
-  collect_date: "2021.03.19"
-  p_id: "test"
-  report_date: "2021.03.19"
+  sampleID: 
+  name: 
+  gender: 
+  age: 
+  send: 
+  office: 
+  doctor: 
+  type: 
+  diagnosis: 
+  orign_id: 
+  collect_date: 
+  p_id: 
+  report_date: 
 
 ######## 项目运行参数 ##########
 process:                                               # 流程设定值，不运行则不填写
@@ -67,7 +67,7 @@ setting:
       DP: 1000
       QUAL: 20
       MAF: 0.01
-    Bed: "/home/bioinfo/ubuntu/database/hg19/cnv/t.bed"
+    Bed: "/home/bioinfo/ubuntu/database/hg19/cnv/tmerge.bed"
     CNV:
       target: "/home/bioinfo/ubuntu/database/hg19/cnv/t.target.bed"
       antitarget: "/home/bioinfo/ubuntu/database/hg19/cnv/t.antitarget.bed"

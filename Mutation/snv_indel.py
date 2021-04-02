@@ -20,6 +20,7 @@ class SNV_Indel(object):
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
+        self.pair = runningInfo["pair"]
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
         
@@ -44,6 +45,7 @@ class SNV_Indel(object):
         gnomad = self.databases + "/" + self.runningInfo["setting"]["Mutation"]["gnomad"]
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         pon = self.runningInfo["setting"]["Mutation"]["pon"]
         bedFile = self.bed
         threads = self.threads
@@ -53,6 +55,13 @@ class SNV_Indel(object):
             bamFile = checkBQSR
         else:
             bamFile = sampleID + ".bam"
+
+        if pairID != None:
+            pairBQSR = pairID + ".BQSR.bam"
+            if pairBQSR in os.listdir(resultsDir + "/bam"):
+                pairFile = pairBQSR
+            else:
+                pairFile = pairID + ".bam"
 
         tmpDir = resultsDir + "/tempFile/gatk_" + sampleID
         mkdir(tmpDir)
@@ -64,23 +73,43 @@ class SNV_Indel(object):
         if bedFile == None:
             bedFile = "null"
         
-        cmd = """
-            gatk Mutect2 \\
-                -R {reference} \\
-                -I {resultsDir}/bam/{bamFile} \\
-                -O {tmpDir}/{sampleID}.m2.vcf \\
-                -tumor {sampleID} \\
-                --germline-resource {gnomad} \\
-                -pon {pon} \\
-                --native-pair-hmm-threads {threads} \\
-                -L {bedFile} \\
-                -A Coverage -A GenotypeSummaries \\
-                --genotype-germline-sites true \\
-                --max-reads-per-alignment-start 0
-            cp {tmpDir}/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
-        """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
-        print(cmd)
-        os.system(cmd)
+        if pairID == None:
+            cmd = """
+                gatk Mutect2 \\
+                    -R {reference} \\
+                    -I {resultsDir}/bam/{bamFile} \\
+                    -O {tmpDir}/{sampleID}.m2.vcf \\
+                    -tumor {sampleID} \\
+                    --germline-resource {gnomad} \\
+                    -pon {pon} \\
+                    --native-pair-hmm-threads {threads} \\
+                    -L {bedFile} \\
+                    -A Coverage -A GenotypeSummaries \\
+                    --genotype-germline-sites true \\
+                    --max-reads-per-alignment-start 0
+                cp {tmpDir}/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
+            """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
+            print(cmd)
+            os.system(cmd)
+
+        else:
+            cmd = """
+                gatk Mutect2 \\
+                    -R {reference} \\
+                    -I {resultsDir}/bam/{bamFile} -tumor {sampleID} \\
+                    -I {resultsDir}/bam/{pairFile} -normal {pairID} \\
+                    -O {tmpDir}/{sampleID}_{pairID}.m2.vcf \\
+                    --germline-resource {gnomad} \\
+                    -pon {pon} \\
+                    --native-pair-hmm-threads {threads} \\
+                    -L {bedFile} \\
+                    -A Coverage -A GenotypeSummaries \\
+                    --genotype-germline-sites true \\
+                    --max-reads-per-alignment-start 0
+                cp {tmpDir}/{sampleID}_{pairID}.m2.vcf {resultsDir}/vcf/{sampleID}_{pairID}.vcf
+            """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile, pairFile=pairFile, pairID=pairID)
+            print(cmd)
+            os.system(cmd)
 
     # GATK4
     def gatk_haplotypecaller(self):
@@ -256,6 +285,7 @@ class SNV_Indel(object):
         reference = self.reference
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
 
         checkBQSR = sampleID + ".BQSR.bam"
         if checkBQSR in os.listdir(resultsDir + "/bam"):
@@ -263,9 +293,16 @@ class SNV_Indel(object):
         else:
             bamFile = sampleID + ".bam"
 
+        if pairID != None:
+            pairBQSR = pairID + ".BQSR.bam"
+            if pairBQSR in os.listdir(resultsDir + "/bam"):
+                pairFile = pairBQSR
+            else:
+                pairFile = pairID + ".bam"            
+
         tmpDir = resultsDir + "/tempFile/gatk_" + sampleID
         mkdir(tmpDir)
-        
+
         cmd = """
             gatk GetPileupSummaries \\
                 -I {resultsDir}/bam/{bamFile} \\

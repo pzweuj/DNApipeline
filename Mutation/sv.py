@@ -29,7 +29,7 @@ class SV(object):
         self.bed = runningInfo["setting"]["Mutation"]["Bed"]
 
         if runningInfo["setting"]["QC"]["UMI_loc"] != None:
-            self.bam = self.output + "/tempFile/bwa_" + self.sample + "/" + self.sample + ".bam"
+            self.bam = self.output + "/tempFile/bwa_" + self.sample + "/" + self.sample + ".sort.bam"
             if not os.path.exists(self.bam):
                 self.bam = self.output + "/bam/" + self.sample + ".bam"
         else:

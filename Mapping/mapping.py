@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.1"
+__Version__ = "0.2"
 __Author__ = "pzweuj"
-__Date__ = "20210220"
+__Date__ = "20210402"
 
 
 import os
@@ -22,6 +22,7 @@ class Mapping(object):
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
+        self.pair = runningInfo["pair"]
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
         
@@ -50,6 +51,7 @@ class Mapping(object):
         threads = self.threads
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
 
         tmpDir = resultsDir + "/tempFile/bwa_" + sampleID
         mkdir(tmpDir)
@@ -63,11 +65,32 @@ class Mapping(object):
                 | samtools view -bSh --threads {threads} - > {tmpDir}/{sampleID}.bam
             samtools sort {tmpDir}/{sampleID}.bam -@ {threads} -o {tmpDir}/{sampleID}.sort.bam
             samtools index {tmpDir}/{sampleID}.sort.bam
+            rm {tmpDir}/{sampleID}.bam
             cp {tmpDir}/{sampleID}.sort.bam {resultsDir}/bam/{sampleID}.bam
             cp {tmpDir}/{sampleID}.sort.bam.bai {resultsDir}/bam/{sampleID}.bam.bai
         """.format(tmpDir=tmpDir, threads=threads, sampleID=sampleID, reference=reference, resultsDir=resultsDir)
         print(cmd)
         os.system(cmd)
+
+        if pairID != None:
+            pairDir = resultsDir + "/tempFile/bwa_" + pairID
+            mkdir(pairDir)
+            p = """
+                bwa mem -t {threads} \\
+                    -M \\
+                    -R "@RG\\tID:{pairID}\\tLB:{pairID}\\tPL:illumina\\tPU:Hiseq\\tSM:{pairID}" \\
+                    {reference} \\
+                    {resultsDir}/cleandata/{pairID}.clean_R1.fastq.gz \\
+                    {resultsDir}/cleandata/{pairID}.clean_R2.fastq.gz \\
+                    | samtools view -bSh --threads {threads} - > {pairDir}/{pairID}.bam
+                samtools sort {pairDir}/{pairID}.bam -@ {threads} -o {pairDir}/{pairID}.sort.bam
+                samtools index {pairDir}/{pairID}.sort.bam
+                rm {pairDir}/{pairID}.bam
+                cp {pairDir}/{pairID}.sort.bam {resultsDir}/bam/{pairID}.bam
+                cp {pairDir}/{pairID}.sort.bam.bai {resultsDir}/bam/{pairID}.bam.bai
+            """.format(pairDir=pairDir, threads=threads, pairID=pairID, reference=reference, resultsDir=resultsDir)
+            print(p)
+            os.system(p)
 
     # gencore
     # https://github.com/OpenGene/gencore
@@ -75,12 +98,12 @@ class Mapping(object):
     def gencore(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         threads = self.threads
         reference = self.reference
 
         tmpDir = resultsDir + "/tempFile/gencore_" + sampleID
         mkdir(tmpDir)
-
         cmd = """
             gencore -i {resultsDir}/bam/{sampleID}.bam \\
                 -r {reference} \\
@@ -95,11 +118,29 @@ class Mapping(object):
         print(cmd)
         os.system(cmd)
 
+        if pairID != None:
+            pairDir = resultsDir + "/tempFile/gencore_" + pairID
+            mkdir(pairDir)
+            p = """
+                gencore -i {resultsDir}/bam/{pairID}.bam \\
+                    -r {reference} \\
+                    -o {pairDir}/{pairID}.umi.bam \\
+                    -u UMI -s 2 -d 1 \\
+                    -j {pairDir}/{pairID}.json -h {pairDir}/{pairID}.html
+                samtools sort -@ {threads} {pairDir}/{pairID}.umi.bam -o {pairDir}/{pairID}.umi.sort.bam
+                samtools index {pairDir}/{pairID}.umi.sort.bam
+                cp {pairDir}/{pairID}.umi.sort.bam {resultsDir}/bam/{pairID}.bam
+                cp {pairDir}/{pairID}.umi.sort.bam.bai {resultsDir}/bam/{pairID}.bam.bai
+            """.format(reference=reference, resultsDir=resultsDir, pairID=pairID, pairDir=pairDir, threads=threads)
+            print(p)
+            os.system(p)
+
     # GATK4
     # https://github.com/broadinstitute/gatk
     def markDuplicates(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         if self.removeDups:
             remove = "true"
         else:
@@ -119,6 +160,21 @@ class Mapping(object):
         print(cmd)
         os.system(cmd)
 
+        if pairID != None:
+            pairDir = resultsDir + "/tempFile/markDups_" + pairID
+            mkdir(pairDir)
+            p = """
+                gatk MarkDuplicates \\
+                    -I {resultsDir}/bam/{pairID}.bam \\
+                    -O {pairDir}/{pairID}.marked.bam \\
+                    -M {pairDir}/{pairID}.dups.txt \\
+                    --REMOVE_DUPLICATES {remove}
+                cp {pairDir}/{pairID}.marked.bam {resultsDir}/bam/{pairID}.bam
+                samtools index {resultsDir}/bam/{pairID}.bam
+            """.format(pairDir=pairDir, resultsDir=resultsDir, pairID=pairID, remove=remove)
+            print(p)
+            os.system(p)
+
     def recalibrator(self):
         reference = self.reference
         databases = self.databases
@@ -127,10 +183,10 @@ class Mapping(object):
         indel_1000g = databases + "/" + self.runningInfo["setting"]["Mapping"]["indel_1000g"]
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
 
         tmpDir = resultsDir + "/tempFile/gatk_" + sampleID
         mkdir(tmpDir)
-
         cmd = """
             gatk BaseRecalibrator \\
                 --known-sites {snp} \\
@@ -152,6 +208,30 @@ class Mapping(object):
         print(cmd)
         os.system(cmd)
 
+        if pairID != None:
+            pairDir = resultsDir + "/tempFile/gatk_" + pairID
+            mkdir(pairDir)
+            p = """
+                gatk BaseRecalibrator \\
+                    --known-sites {snp} \\
+                    --known-sites {mills} \\
+                    --known-sites {indel_1000g} \\
+                    -R {reference} \\
+                    -I {resultsDir}/bam/{pairID}.bam \\
+                    -O {pairDir}/{pairID}.recal.table
+
+                gatk ApplyBQSR \\
+                    -R {reference} \\
+                    --bqsr-recal-file {pairDir}/{pairID}.recal.table \\
+                    -I {resultsDir}/bam/{pairID}.bam \\
+                    -O {pairDir}/{pairID}.BQSR.bam
+
+                cp {pairDir}/{pairID}.BQSR.bam {resultsDir}/bam/{pairID}.bam
+                cp {pairDir}/{pairID}.BQSR.bai {resultsDir}/bam/{pairID}.bam.bai
+            """.format(pairDir=pairDir, snp=snp, mills=mills, indel_1000g=indel_1000g, reference=reference, resultsDir=resultsDir, pairID=pairID)
+            print(p)
+            os.system(p)
+
 
     # Gemini
     # https://github.com/Illumina/Pisces/wiki/Gemini-5.2.10-Design-Document
@@ -162,11 +242,11 @@ class Mapping(object):
         databases = self.databases
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         threads = self.threads
 
         tmpDir = resultsDir + "/tempFile/gemini_" + sampleID
         mkdir(tmpDir)
-
         cmd = """
             dotnet {gemini_multi} -bam {resultsDir}/bam/{sampleID}.bam \\
                 -genome {databases} \\
@@ -177,16 +257,33 @@ class Mapping(object):
         print(cmd)
         os.system(cmd)
 
+        if pairID != None:
+            pairDir = resultsDir + "/tempFile/gemini_" + pairID
+            mkdir(pairDir)
+            p = """
+                dotnet {gemini_multi} -bam {resultsDir}/bam/{pairID}.bam \\
+                    -genome {databases} \\
+                    --outFolder {pairDir} \\
+                    --numprocesses {threads} \\
+                    --samtools /home/bioinfo/ubuntu/software/samtools-1.11
+            """.format(gemini_multi=gemini_multi, resultsDir=resultsDir, pairID=pairID, databases=databases, pairDir=pairDir, threads=threads)
+            print(p)
+            os.system(p)
+
     # bamdst
     # https://github.com/shiquan/bamdst
     # 用于统计bam比对效果
     def bamdst(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         bedFile = self.bed
         
         tmpDir = resultsDir + "/tempFile/bamdst_" + sampleID
         mkdir(tmpDir)
+        if pairID != None:
+            pairDir = resultsDir + "/tempFile/bamdst_" + pairID
+            mkdir(pairDir)
 
         if bedFile == None:
             print("必须导入bed文件才能进行捕获分析！")
@@ -196,6 +293,14 @@ class Mapping(object):
             """.format(bedFile=bedFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID)
             print(cmd)
             os.system(cmd)
+
+            if pairID != None:
+                p = """
+                    bamdst -p {bedFile} -o {pairDir} {resultsDir}/bam/{pairID}.bam
+                """.format(bedFile=bedFile, pairDir=pairDir, resultsDir=resultsDir, pairID=pairID)
+                print(p)
+                os.system(p)
+
 
         bamdstReportFile = open(tmpDir + "/coverage.report", "r")
         bamdstReport = open(resultsDir + "/QC/" + sampleID + ".bamdst.txt", "w")
@@ -208,5 +313,19 @@ class Mapping(object):
                 bamdstReport.write(lines)
         bamdstReport.close()
         bamdstReportFile.close()
+        
+        if pairID != None:
+            bamdstReportFile = open(pairDir + "/coverage.report", "r")
+            bamdstReport = open(resultsDir + "/QC/" + pairID + ".bamdst.txt", "w")
+            bamdstReport.write(pairID + " Bamdst QC Report\n")
+            for line in bamdstReportFile:
+                if line.startswith("#"):
+                    continue
+                else:
+                    lines = line.lstrip()
+                    bamdstReport.write(lines)
+            bamdstReport.close()
+            bamdstReportFile.close()
+        
         print("bamdst捕获分析完成！")
 

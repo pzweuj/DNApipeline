@@ -65,7 +65,8 @@ class HLA(object):
 
         cmd = """
             samtools view {resultsDir}/bam/{sampleID}.bam {extractRegion} -b > {tmpDir}/{sampleID}.HLA.bam
-            bedtools bamtofastq -i {tmpDir}/{sampleID}.HLA.bam \\
+            samtools sort -n {tmpDir}/{sampleID}.HLA.bam > {tmpDir}/{sampleID}.HLA.sort.bam
+            bedtools bamtofastq -i {tmpDir}/{sampleID}.HLA.sort.bam \\
                 -fq {tmpDir}/{sampleID}.HLA.R1.fastq -fq2 {tmpDir}/{sampleID}.HLA.R2.fastq
             hlahd.sh -t {threads} -m 100 -c 0.95 -f {freq} \\
                 {tmpDir}/{sampleID}.HLA.R1.fastq {tmpDir}/{sampleID}.HLA.R2.fastq \\

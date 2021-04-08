@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.19"
+__Version__ = "0.20"
 __Author__ = "pzweuj"
-__Date__ = "20210308"
+__Date__ = "20210406"
 
 import os
 import sys
@@ -22,6 +22,7 @@ class MSI(object):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
         self.rawdata = runningInfo["rawdata"]
+        self.pair = runningInfo["pair"]
         self.output = runningInfo["output"]
 
         self.threads = str(runningInfo["process"]["threads"])
@@ -36,19 +37,30 @@ class MSI(object):
     def msisensor_pro(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         msi_baseline = self.runningInfo["setting"]["Other"]["msisensorpro_baseline"]
         msi_list = self.runningInfo["setting"]["Other"]["msi_list"]
 
         tmpDir = resultsDir + "/tempFile/msisensorpro_" + sampleID
         mkdir(tmpDir)
-        cmd = """
-            msisensor-pro pro -d {msi_list} \\
-                -t {resultsDir}/bam/{sampleID}.bam \\
-                -o {tmpDir}/{sampleID}
-            mv {tmpDir}/{sampleID} {tmpDir}/{sampleID}.txt
-            cp {tmpDir}/{sampleID}.txt {resultsDir}/msi/{sampleID}.MSIsensorp.txt
-            
-        """.format(msi_list=msi_list, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir)
+        
+        if pairID == None:
+            cmd = """
+                msisensor-pro pro -d {msi_list} \\
+                    -t {resultsDir}/bam/{sampleID}.bam \\
+                    -o {tmpDir}/{sampleID}
+                mv {tmpDir}/{sampleID} {tmpDir}/{sampleID}.txt
+                cp {tmpDir}/{sampleID}.txt {resultsDir}/msi/{sampleID}.MSIsensorp.txt
+            """.format(msi_list=msi_list, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir)
+        else:
+            cmd = """
+                msisensor-pro msi -d {msi_list} \\
+                    -n {resultsDir}/bam/{pairID}.bam \\
+                    -t {resultsDir}/bam/{sampleID}.bam \\
+                    -o {tmpDir}/{sampleID}
+                mv {tmpDir}/{sampleID} {tmpDir}/{sampleID}.txt
+                cp {tmpDir}/{sampleID}.txt {resultsDir}/msi/{sampleID}.MSIsensorp.txt
+            """.format(msi_list=msi_list, resultsDir=resultsDir, pairID=pairID, sampleID=sampleID, tmpDir=tmpDir)
         print(cmd)
         os.system(cmd)
 

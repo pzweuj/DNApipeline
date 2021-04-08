@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.13"
+__Version__ = "0.14"
 __Author__ = "pzweuj"
-__Date__ = "20210224"
+__Date__ = "20210407"
 
 import os
 import sys
@@ -20,6 +20,7 @@ class CNV(object):
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
+        self.pair = runningInfo["pair"]
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
 
@@ -36,33 +37,47 @@ class CNV(object):
     def cnvkit(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         CNV = self.runningInfo["setting"]["Mutation"]["CNV"]
         baseline = CNV["baseline"]
         target = CNV["target"]
         antitarget = CNV["antitarget"]
         threads = self.threads
+        refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
 
         mkdir(resultsDir + "/cnv")
         tmpDir = resultsDir + "/tempFile/cnvkit_" + sampleID
         mkdir(tmpDir)
 
-        cmd = """
-            cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
-                {target} -o {tmpDir}/{sampleID}.targetcoverage.cnn
-            cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
-                {antitarget} -o {tmpDir}/{sampleID}.antitargetcoverage.cnn
-            cnvkit.py fix {tmpDir}/{sampleID}.targetcoverage.cnn \
-                {tmpDir}/{sampleID}.antitargetcoverage.cnn \
-                {baseline} -o {tmpDir}/{sampleID}.cnr
-            cnvkit.py segment {tmpDir}/{sampleID}.cnr \
-                -o {tmpDir}/{sampleID}.cns
-            cnvkit.py call {tmpDir}/{sampleID}.cns \
-                -o {tmpDir}/{sampleID}.call.cns
-            cnvkit.py scatter {tmpDir}/{sampleID}.cnr \
-                -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.scatter.pdf
-            cnvkit.py diagram {tmpDir}/{sampleID}.cnr \
-                -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.diagram.pdf
-        """.format(resultsDir=resultsDir, sampleID=sampleID, target=target, tmpDir=tmpDir, antitarget=antitarget, baseline=baseline)
+        if pairID == None:
+            cmd = """
+                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
+                    {target} -o {tmpDir}/{sampleID}.targetcoverage.cnn
+                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
+                    {antitarget} -o {tmpDir}/{sampleID}.antitargetcoverage.cnn
+                cnvkit.py fix {tmpDir}/{sampleID}.targetcoverage.cnn \
+                    {tmpDir}/{sampleID}.antitargetcoverage.cnn \
+                    {baseline} -o {tmpDir}/{sampleID}.cnr
+                cnvkit.py segment {tmpDir}/{sampleID}.cnr \
+                    -o {tmpDir}/{sampleID}.cns
+                cnvkit.py call {tmpDir}/{sampleID}.cns \
+                    -o {tmpDir}/{sampleID}.call.cns
+                cnvkit.py scatter {tmpDir}/{sampleID}.cnr \
+                    -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.scatter.pdf
+                cnvkit.py diagram {tmpDir}/{sampleID}.cnr \
+                    -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.diagram.pdf
+            """.format(resultsDir=resultsDir, sampleID=sampleID, target=target, tmpDir=tmpDir, antitarget=antitarget, baseline=baseline)
+        else:
+            cmd = """
+                cnvkit.py batch {resultsDir}/bam/{sampleID}.bam \\
+                    --normal {resultsDir}/bam/{pairID}.bam \\
+                    --method hybrid \\
+                    --targets {target} \\
+                    --annotate {refFlat} \\
+                    --output-dir {tmpDir} \\
+                    --diagram --scatter -p {threads}
+            """.format(resultsDir=resultsDir, sampleID=sampleID, pairID=pairID, target=target, refFlat=refFlat, tmpDir=tmpDir, threads=threads)
+
         print(cmd)
         os.system(cmd)
 
@@ -79,7 +94,7 @@ class CNV(object):
             if line.startswith("chromosome"):
                 continue
             else:
-                lineAfterSplit = line.split("\t")
+                lineAfterSplit = line.split("\n")[0].split("\t")
                 chrom = lineAfterSplit[0]
                 start = lineAfterSplit[1]
                 end = lineAfterSplit[2]
@@ -87,7 +102,7 @@ class CNV(object):
                 log2 = lineAfterSplit[4]
                 VAF = lineAfterSplit[5]
                 depth = lineAfterSplit[6]
-                if "p_ttest" in line:
+                if len(lineAfterSplit) == 10:
                     p_ttest = lineAfterSplit[7]
                     probes = lineAfterSplit[8]
                     weight = lineAfterSplit[9]
@@ -103,7 +118,7 @@ class CNV(object):
                 else:
                     filter_output = [chrom, start, end, gene, VAF, log2, depth, p_ttest, probes, weight]
                     outputString = "\t".join(filter_output)
-                    cnvkitResults.write(outputString)
+                    cnvkitResults.write(outputString + "\n")
         cnvkitResults.close()
         cnvkitResultsFile.close()
 

@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.12"
+__Version__ = "0.13"
 __Author__ = "pzweuj"
-__Date__ = "20210309"
+__Date__ = "20210407"
 
 import os
 import sys
@@ -37,56 +37,143 @@ class HLA(object):
         mkdir(self.output + "/tempFile")
         mkdir(self.output + "/HLA")
 
+    # 提取HLA区域
+    def extractHLA(self):
+        resultsDir = self.output
+        sampleID = self.sample
+        buildver = self.buildver
+        threads = self.threads
+        tmpDir = self.tmpDir
+
+        if buildver == "hg19":
+            HLA = [
+                "chr6:28477797-33448354",
+                "chr6_apd_hap1:1-4622290",
+                "chr6_cox_hap2:1-4795371",
+                "chr6_dbb_hap3:1-4610396",
+                "chr6_mann_hap4:1-4683263",
+                "chr6_mcf_hap5:1-4833398",
+                "chr6_qbl_hap6:1-4611984",
+                "chr6_ssto_hap7:1-4928567"
+            ]
+
+        elif buildver == "hg38":
+            HLA = [
+                "chr6:28510120-33480577",
+                "chr6_GL000250v2_alt:1066038-4433734",
+                "chr6_GL000251v2_alt:1283988-4540572",
+                "chr6_GL000252v2_alt:1063230-4372611",
+                "chr6_GL000253v2_alt:1062914-4548533",
+                "chr6_GL000254v2_alt:1062887-4416229",
+                "chr6_GL000255v2_alt:1063190-4323464",
+                "chr6_GL000256v2_alt:1106450-4577757"
+            ]
+
+        else:
+            print("Cannot get buildver")
+            exit()
+
+        extractRegion = " ".join(HLA)
+        cmd = """
+            samtools view {resultsDir}/bam/{sampleID}.bam \\
+                {extractRegion} \\
+                -b > {tmpDir}/{sampleID}.HLA.bam
+            samtools view {resultsDir}/bam/{sampleID}.bam -bh -f 12 -@ {threads} > {tmpDir}/{sampleID}.unmapped.bam
+            samtools merge {tmpDir}/{sampleID}.merge.bam {tmpDir}/{sampleID}.HLA.bam {tmpDir}/{sampleID}.unmapped.bam -@ {threads}
+            samtools sort {tmpDir}/{sampleID}.merge.bam -n -@ {threads} -o {tmpDir}/{sampleID}.sort.bam
+            samtools fastq {tmpDir}/{sampleID}.sort.bam \\
+                -1 {tmpDir}/{sampleID}.HLA.R1.fastq \\
+                -2 {tmpDir}/{sampleID}.HLA.R2.fastq -@ {threads} -s /dev/null
+            rm {tmpDir}/*.bam
+        """.format(threads=threads, resultsDir=resultsDir, sampleID=sampleID, extractRegion=extractRegion, tmpDir=tmpDir)
+        print(cmd)
+        os.system(cmd)
+
+
     # HLA-HD
     # https://www.genome.med.kyoto-u.ac.jp/HLA-HD/
     def hlahd(self):
         resultsDir = self.output
-        sampleID = self.output
+        sampleID = self.sample
         buildver = self.buildver
         threads = self.threads
 
         # 以下数据库无需指定参考基因坐标，为通用数据库，因此不写入配置文件中
         freq = "/home/bioinfo/ubuntu/software/hlahd.1.3.0/freq_data"
         dictionary = "/home/bioinfo/ubuntu/software/hlahd.1.3.0/dictionary"
-        split_file = "/home/bioinfo/ubuntu/software/hlahd.1.3.0/HLA_gene.split.3.32.0.txt"
-
-        if buildver == "hg19":
-            extractRegion = "chr6:28477797-33448354"
-        elif buildver == "b37":
-            extractRegion = "6:28477797-33448354"
-        elif buildver == "hg38":
-            extractRegion = "chr6:28510120-33480577"
-        else:
-            print("Cannot get buildver")
-            exit()
+        split_file = "/home/bioinfo/ubuntu/software/hlahd.1.3.0/HLA_gene.ABC.txt"
 
         tmpDir = resultsDir + "/tempFile/hlahd_" + sampleID
+        self.tmpDir = tmpDir
         mkdir(tmpDir)
+        self.extractHLA()
 
         cmd = """
-            samtools view {resultsDir}/bam/{sampleID}.bam {extractRegion} -b > {tmpDir}/{sampleID}.HLA.bam
-            samtools sort -n {tmpDir}/{sampleID}.HLA.bam > {tmpDir}/{sampleID}.HLA.sort.bam
-            bedtools bamtofastq -i {tmpDir}/{sampleID}.HLA.sort.bam \\
-                -fq {tmpDir}/{sampleID}.HLA.R1.fastq -fq2 {tmpDir}/{sampleID}.HLA.R2.fastq
             hlahd.sh -t {threads} -m 100 -c 0.95 -f {freq} \\
                 {tmpDir}/{sampleID}.HLA.R1.fastq {tmpDir}/{sampleID}.HLA.R2.fastq \\
                 {split_file} {dictionary} {sampleID} {tmpDir}
-            cp {tmpDir}/{sampleID}/result/{sampleID}_final.result.txt {resultsDir}/HLA/
-        """.format(threads=threads, freq=freq, split_file=split_file, dictionary=dictionary, resultsDir=resultsDir, sampleID=sampleID, extractRegion=extractRegion, tmpDir=tmpDir)
+            cp {tmpDir}/{sampleID}/result/{sampleID}_final.result.txt {resultsDir}/HLA/{sampleID}.hlahd.txt
+        """.format(threads=threads, freq=freq, split_file=split_file, dictionary=dictionary, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir)
         print(cmd)
         os.system(cmd)
 
-    # seq2HLA
-    # https://github.com/TRON-Bioinformatics/seq2HLA
-    def seq2hla(self):
-        pass
-    
-    # HLAreporter
-    # http://paed.hku.hk/genome/software.html
-    def hlareporter(self):
-    	pass
 
     # HLAscan
     # https://github.com/SyntekabioTools/HLAscan
     def hlascan(self):
-    	pass
+        resultsDir = self.output
+        sampleID = self.sample
+        buildver = self.buildver
+        threads = self.threads
+        hla_scan = "/home/bioinfo/ubuntu/software/HLAscan/hla_scan_r_v2.1.4"
+        hla_db = "/home/bioinfo/ubuntu/software/HLAscan/HLA-ALL.IMGT"
+
+        tmpDir = resultsDir + "/tempFile/hlascan_" + sampleID
+        self.tmpDir = tmpDir
+        mkdir(tmpDir)
+        self.extractHLA()
+
+        print("开始进行HLA分型")
+        cmd = """
+            {hla_scan} -l {tmpDir}/{sampleID}.HLA.R1.fastq \\
+                -r {tmpDir}/{sampleID}.HLA.R2.fastq \\
+                -t {threads} \\
+                -d {hla_db} -g HLA-A > {tmpDir}/{sampleID}.HLA-A.txt
+            {hla_scan} -l {tmpDir}/{sampleID}.HLA.R1.fastq \\
+                -r {tmpDir}/{sampleID}.HLA.R2.fastq \\
+                -t {threads} \\
+                -d {hla_db} -g HLA-B > {tmpDir}/{sampleID}.HLA-B.txt
+            {hla_scan} -l {tmpDir}/{sampleID}.HLA.R1.fastq \\
+                -r {tmpDir}/{sampleID}.HLA.R2.fastq \\
+                -t {threads} \\
+                -d {hla_db} -g HLA-C > {tmpDir}/{sampleID}.HLA-C.txt
+            cat {tmpDir}/{sampleID}.HLA-A.txt {tmpDir}/{sampleID}.HLA-B.txt {tmpDir}/{sampleID}.HLA-C.txt \\
+                > {tmpDir}/{sampleID}.hlahd.txt
+            cp {tmpDir}/{sampleID}.hlahd.txt {resultsDir}/HLA/
+        """.format(hla_scan=hla_scan, hla_db=hla_db, tmpDir=tmpDir, sampleID=sampleID, threads=threads, resultsDir=resultsDir)
+        print(cmd)
+        os.system(cmd)
+
+    # OptiType
+    # https://github.com/FRED-2/OptiType
+    # optitype线程数需要修改软件配置文件，目前默认为8
+    def optitype(self):
+        resultsDir = self.output
+        sampleID = self.sample
+        buildver = self.buildver
+        threads = self.threads
+        optipipe = "/home/bioinfo/ubuntu/software/OptiType-1.3.5/OptiTypePipeline.py"
+
+        tmpDir = resultsDir + "/tempFile/optitype_" + sampleID
+        self.tmpDir = tmpDir
+        mkdir(tmpDir)
+        self.extractHLA()
+
+        cmd = """
+            python {optipipe} \\
+                -i {tmpDir}/{sampleID}.HLA.R1.fastq {tmpDir}/{sampleID}.HLA.R2.fastq \\
+                -d -o {tmpDir} -p {sampleID} -v
+            cp {tmpDir}/{sampleID}_result.tsv {resultsDir}/HLA/{sampleID}.optitype.txt
+        """.format(optipipe=optipipe, tmpDir=tmpDir, sampleID=sampleID, resultsDir=resultsDir)
+        print(cmd)
+        os.system(cmd)

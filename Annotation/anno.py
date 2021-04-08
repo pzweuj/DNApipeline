@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.17"
+__Version__ = "0.18"
 __Author__ = "pzweuj"
-__Date__ = "20210317"
+__Date__ = "20210406"
 
 import os
 import sys
@@ -22,6 +22,7 @@ class Annotation(object):
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
+        self.pair = runningInfo["pair"]
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
 
@@ -120,13 +121,19 @@ class Annotation(object):
         buildver = self.runningInfo["setting"]["Annotation"]["buildver"]
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         threads = self.threads
 
         tmpDir = resultsDir + "/tempFile/annovar_" + sampleID
         mkdir(tmpDir)
 
+        if pairID == None:
+            vcfFile = resultsDir + "/vcf/" + sampleID + ".vcf"
+        else:
+            vcfFile = resultsDir + "/vcf/" + sampleID + ".filter.vcf"
+
         cmd = """
-            convert2annovar.pl -format vcf4 {resultsDir}/vcf/{sampleID}.vcf \\
+            convert2annovar.pl -format vcf4 {vcfFile} \\
                 --includeinfo > {tmpDir}/{sampleID}.avinput
             table_annovar.pl {tmpDir}/{sampleID}.avinput \\
                 {humandb} -buildver {buildver} \\
@@ -134,7 +141,7 @@ class Annotation(object):
                 -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210308,JaxCkb,Civic,OncoKB,dbnsfp41a,cosmic92_coding \\
                 -operation g,r,f,f,f,f,f,f,f,f \\
                 -nastring - -thread {threads} -otherinfo
-        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
+        """.format(vcfFile=vcfFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
         print(cmd)
         os.system(cmd)
 

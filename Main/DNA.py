@@ -226,6 +226,10 @@ def main(runInfo):
         print("使用线程数 " + HLA_process.threads)
         if HLA_process.runApp == "hlahd":
             HLA_process.hlahd()
+        elif HLA_process.runApp == "optitype":
+            HLA_process.optitype()
+        elif HLA_process.runApp == "hlascan":
+            HLA_process.hlascan()
         else:
             print("未找到此HLA分析方法")
 

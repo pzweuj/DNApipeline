@@ -20,6 +20,7 @@ class SV(object):
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
+        self.pair = runningInfo["pair"]
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
 
@@ -30,10 +31,20 @@ class SV(object):
 
         if runningInfo["setting"]["QC"]["UMI_loc"] != None:
             self.bam = self.output + "/tempFile/bwa_" + self.sample + "/" + self.sample + ".sort.bam"
+            
+            if self.pair != None:
+                self.normal = self.output + "/tempFile/bwa_" + self.pair + "/" + self.sample + ".sort.bam"
+            
             if not os.path.exists(self.bam):
                 self.bam = self.output + "/bam/" + self.sample + ".bam"
+                
+                if self.pair != None:
+                    self.normal = self.output + "/bam/" + self.pair + ".bam"
         else:
             self.bam = self.output + "/bam/" + self.sample + ".bam"
+            if self.pair != None:
+                self.normal = self.output + "/bam/" + self.pair + ".bam"
+
 
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
@@ -41,47 +52,76 @@ class SV(object):
 
     # lumpy
     # https://github.com/arq5x/lumpy-sv
-    # svtyper
-    # https://github.com/hall-lab/svtyper
     def lumpy(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         threads = self.threads
         bamFile = self.bam
 
         tmpDir = resultsDir + "/tempFile/lumpy_" + sampleID
         mkdir(tmpDir)
 
-        cmd = """
-            samtools view -bh -F 1294 {bamFile} \\
-                | samtools sort -@ {threads} - \\
-                -o {tmpDir}/{sampleID}.discordants.bam
-            samtools index {tmpDir}/{sampleID}.discordants.bam
-            samtools view -h {bamFile} \\
-                | extractSplitReads_BwaMem \\
-                -i stdin \\
-                | samtools view -bSh - \\
-                | samtools sort -@ {threads} - \\
-                -o {tmpDir}/{sampleID}.splitters.bam
-            samtools index {tmpDir}/{sampleID}.splitters.bam
-            lumpyexpress -B {bamFile} \\
-                -D {tmpDir}/{sampleID}.discordants.bam \\
-                -S {tmpDir}/{sampleID}.splitters.bam \\
-                -o {tmpDir}/{sampleID}.lumpy.vcf
-            # svtyper-sso \\
-            #    -i {tmpDir}/{sampleID}.lumpy.vcf \\
-            #    -B {bamFile} \\
-            #    --cores {threads} \\
-            #    -o {tmpDir}/{sampleID}.gt.vcf
-            # cp {tmpDir}/{sampleID}.gt.vcf {resultsDir}/sv/{sampleID}.vcf
-        """.format(bamFile=bamFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
+        if pairID == None:
+            cmd = """
+                samtools view -bh -F 1294 {bamFile} \\
+                    | samtools sort -@ {threads} - \\
+                    -o {tmpDir}/{sampleID}.discordants.bam
+                samtools index {tmpDir}/{sampleID}.discordants.bam
+                samtools view -h {bamFile} \\
+                    | extractSplitReads_BwaMem \\
+                    -i stdin \\
+                    | samtools view -bSh - \\
+                    | samtools sort -@ {threads} - \\
+                    -o {tmpDir}/{sampleID}.splitters.bam
+                samtools index {tmpDir}/{sampleID}.splitters.bam
+                lumpyexpress -B {bamFile} \\
+                    -D {tmpDir}/{sampleID}.discordants.bam \\
+                    -S {tmpDir}/{sampleID}.splitters.bam \\
+                    -o {tmpDir}/{sampleID}.lumpy.vcf
+
+            """.format(bamFile=bamFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
+        else:
+            pairFile = self.normal
+            cmd = """
+                samtools view -bh -F 1294 {bamFile} \\
+                    | samtools sort -@ {threads} - \\
+                    -o {tmpDir}/{sampleID}.discordants.bam
+                samtools index {tmpDir}/{sampleID}.discordants.bam
+                samtools view -h {bamFile} \\
+                    | extractSplitReads_BwaMem \\
+                    -i stdin \\
+                    | samtools view -bSh - \\
+                    | samtools sort -@ {threads} - \\
+                    -o {tmpDir}/{sampleID}.splitters.bam
+                samtools index {tmpDir}/{sampleID}.splitters.bam
+                samtools view -bh -F 1294 {pairFile} \\
+                    | samtools sort -@ {threads} - \\
+                    -o {tmpDir}/{pairID}.discordants.bam
+                samtools index {tmpDir}/{pairID}.discordants.bam
+                samtools view -h {pairFile} \\
+                    | extractSplitReads_BwaMem \\
+                    -i stdin \\
+                    | samtools view -bSh - \\
+                    | samtools sort -@ {threads} - \\
+                    -o {tmpDir}/{pairID}.splitters.bam
+                samtools index {tmpDir}/{pairID}.splitters.bam                
+                lumpyexpress -B {bamFile},{pairFile} \\
+                    -D {tmpDir}/{sampleID}.discordants.bam,{tmpDir}/{pairID}.discordants.bam \\
+                    -S {tmpDir}/{sampleID}.splitters.bam,{tmpDir}/{pairID}.splitters.bam \\
+                    -o {tmpDir}/{sampleID}.lumpy.vcf
+            """.format(pairID=pairID, pairFile=pairFile, bamFile=bamFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, threads=threads)
         print(cmd)
         os.system(cmd)
 
     def lumpy_filter(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         bamFile = self.bam
+
+        if pairID != None:
+            pairFile = self.normal
 
         tmpDir = resultsDir + "/tempFile/lumpy_" + sampleID
         lumpyResultsFile = tmpDir + "/" + sampleID + ".lumpy.vcf"
@@ -95,7 +135,11 @@ class SV(object):
         for line in lumpyResults:
             # print(line)
             if line.startswith("#"):
-                lumpyResultsFilter.write(line)
+                if (sampleID + "\t" + pairID) in line:
+                    line.replace(sampleID + "\t" + pairID, pairID + "\t" + sampleID)
+                    lumpyResultsFilter.write(line)
+                else:    
+                    lumpyResultsFilter.write(line)
             else:
                 if not "SVTYPE=BND" in line:
                     continue
@@ -121,6 +165,13 @@ class SV(object):
                 FORMAT = "PR:SR"
                 FORMAT_info = lineAfterSplit[9]
                 infos = FORMAT_info.split(":")
+                
+                if pairID != None:
+                    FORMAT_info_n = lineAfterSplit[10]
+                    infos_n = FORMAT_info_n.split(":")
+                    PR_alt_n = infos_n[2]
+                    SR_alt_n = infos_n[3]
+
                 PR_alt = infos[2]
                 SR_alt = infos[3]
                 check1 = chrom1 + ":" + pos1 + "-" + pos1
@@ -140,6 +191,20 @@ class SV(object):
                         depth2 = d2.replace("\n", "").split("\t")[2]
                 DP = int(depth1) + int(depth2)
                 
+                
+                if pairID != None:
+                    dp1_n = os.popen("samtools depth {pairFile} -r {check1}".format(pairFile=pairFile, check1=check1))
+                    dp2_n = os.popen("samtools depth {pairFile} -r {check2}".format(pairFile=pairFile, check2=check2))
+                    depth1_n = depth2_n = "0"
+                    for d1_n in dp1_n.readlines():
+                        if d1_n.startswith("chr"):
+                            depth1_n = d1_n.replace("\n", "").split("\t")[2]
+                    for d2_n in dp2_n.readlines():
+                        if d2_n.startswith("chr"):
+                            depth2_n = d2_n.replace("\n", "").split("\t")[2]
+                    DP_n = int(depth1_n) + int(depth2_n)                    
+
+
                 # 深度过滤
                 if DP < filterDP:
                     continue
@@ -147,7 +212,15 @@ class SV(object):
                 print(line)
                 PR_ref = str(DP)
                 SR_ref = "0"
-                output = "\t".join(lineAfterSplit[0:8]) + "\t" + FORMAT + "\t" + PR_ref + "," + PR_alt + ":" + SR_ref + "," + SR_alt + "\n"
+
+                if pairID != None:
+                    PR_ref_n = str(DP_n)
+                    SR_ref_n = "0"                    
+
+                if pairID == None:
+                    output = "\t".join(lineAfterSplit[0:8]) + "\t" + FORMAT + "\t" + PR_ref + "," + PR_alt + ":" + SR_ref + "," + SR_alt + "\n"
+                else:
+                    output = "\t".join(lineAfterSplit[0:8]) + "\t" + FORMAT + "\t" + PR_ref_n + "," + PR_alt_n + ":" + SR_ref_n + "," + SR_alt_n + "\t" + PR_ref + "," + PR_alt + ":" + SR_ref + "," + SR_alt + "\n"
                 lumpyResultsFilter.write(output)
         lumpyResultsFilter.close()
         lumpyResults.close()
@@ -162,23 +235,40 @@ class SV(object):
         manta = "/mnt/d/ubuntu/software/manta-1.6.0.centos6_x86_64/bin/configManta.py"
         reference = self.reference
         tumorBam = self.bam
+        normalBam = self.normal
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
 
         tmpDir = resultsDir + "/tempFile/manta_" + sampleID
         mkdir(tmpDir) 
 
-        cmd = """
-            rm -rf {tmpDir}/*
-            {manta} \\
-                --tumorBam {tumorBam} \\
-                --referenceFasta {reference} \\
-                --exome \\
-                --generateEvidenceBam \\
-                --runDir {tmpDir}
-            {tmpDir}/runWorkflow.py
-            zcat {tmpDir}/results/variants/tumorSV.vcf.gz > {tmpDir}/{sampleID}.manta.vcf
-        """.format(sampleID=sampleID, manta=manta, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
+        if pairID == None:
+            cmd = """
+                rm -rf {tmpDir}/*
+                {manta} \\
+                    --tumorBam {tumorBam} \\
+                    --referenceFasta {reference} \\
+                    --exome \\
+                    --generateEvidenceBam \\
+                    --runDir {tmpDir}
+                {tmpDir}/runWorkflow.py
+                zcat {tmpDir}/results/variants/tumorSV.vcf.gz > {tmpDir}/{sampleID}.manta.vcf
+            """.format(sampleID=sampleID, manta=manta, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
+        else:
+            cmd = """
+                rm -rf {tmpDir}/*
+                {manta} \\
+                    --tumorBam {tumorBam} \\
+                    --normalBam {normalBam} \\
+                    --referenceFasta {reference} \\
+                    --exome \\
+                    --generateEvidenceBam \\
+                    --runDir {tmpDir}
+                {tmpDir}/runWorkflow.py
+                zcat {tmpDir}/results/variants/somaticSV.vcf.gz > {tmpDir}/{sampleID}.manta.vcf
+            """.format(sampleID=sampleID, manta=manta, normalBam=normalBam, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
+
         print(cmd)
         os.system(cmd)
 
@@ -186,6 +276,7 @@ class SV(object):
     def manta_filter(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
 
         tmpDir = resultsDir + "/tempFile/manta_" + sampleID
         mantaResultsFile = tmpDir + "/" + sampleID + ".manta.vcf"
@@ -202,7 +293,11 @@ class SV(object):
             else:
                 lineAfterSplit = line.split("\n")[0].split("\t")
                 FORMAT = lineAfterSplit[8]
-                FORMAT_info = lineAfterSplit[9]
+                
+                if pairID == None:
+                    FORMAT_info = lineAfterSplit[9]
+                else:
+                    FORMAT_info = lineAfterSplit[10]
 
                 if "PR" not in FORMAT:
                     SR = FORMAT_info.split(",")
@@ -355,6 +450,7 @@ class SV(object):
 
     def sv_anno(self):
         sampleID = self.sample
+        pairID = self.pair
         resultsDir = self.output
         refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
         runApp = self.runApp
@@ -376,7 +472,11 @@ class SV(object):
                 Filter = lineAfterSplit[6]
                 Info = lineAfterSplit[7]
                 Format = lineAfterSplit[8]
-                Sample = lineAfterSplit[9]
+
+                if pairID == None:
+                    Sample = lineAfterSplit[9]
+                else:
+                    Sample = lineAfterSplit[10]
 
                 if chrom == "chrM":
                     continue

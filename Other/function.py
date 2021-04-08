@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.18"
+__Version__ = "0.19"
 __Author__ = "pzweuj"
-__Date__ = "20210310"
+__Date__ = "20210407"
 
 
 import os
@@ -11,7 +11,7 @@ import time
 import sys
 import yaml
 from openpyxl import Workbook
-from docx2pdf import convert
+# from docx2pdf import convert
 
 # 配置文件读入
 def getRunningInfo(runInfo):
@@ -62,7 +62,9 @@ def write_excel(ws, contents):
             cell = ws.cell(row=1+i, column=1+c)
             cell.value = cstring
 
+# 结果合并到excel
 def mergeResultsToExcel(resultsDir, sampleID):
+    mkdir(resultsDir + "/results")
     dir_list = os.listdir(resultsDir)
     wb = Workbook()
 
@@ -112,10 +114,20 @@ def mergeResultsToExcel(resultsDir, sampleID):
                     ws_msi = wb.create_sheet(m.replace(".txt", "").replace(sampleID + ".", ""))
                     write_excel(ws_msi, content)
 
+    if "HLA" in dir_list:
+        hla = os.listdir(resultsDir + "/HLA")
+        if len(hla) != 0:
+            for h in hla:
+                if sampleID in h:
+                    content = read_txt(resultsDir + "/HLA/" + h)
+                    ws_HLA = wb.create_sheet(h.replace(".txt", "").replace(sampleID + ".", ""))
+                    write_excel(ws_HLA, content)
+    
     wb.remove(wb["Sheet"])
-    wb.save(resultsDir + "/" + sampleID + ".xlsx")
-    print(sampleID + " 结果已汇总到excel表格中： " + resultsDir + "/" + sampleID + ".xlsx")
+    wb.save(resultsDir + "/results/" + sampleID + ".xlsx")
+    print(sampleID + " 结果已汇总到excel表格中： " + resultsDir + "/results/" + sampleID + ".xlsx")
 
 
-def convertDOCX2PDF(input, output):
-    convert(input, output)
+# 调用office，仅适用于windows
+# def convertDOCX2PDF(input, output):
+#     convert(input, output)

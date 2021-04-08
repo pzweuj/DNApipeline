@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.15"
+__Version__ = "0.16"
 __Author__ = "pzweuj"
-__Date__ = "20210301"
+__Date__ = "20210406"
 
 import os
 import sys
@@ -111,7 +111,7 @@ class SNV_Indel(object):
             print(cmd)
             os.system(cmd)
 
-    # GATK4
+    # GATK4 single sample only
     def gatk_haplotypecaller(self):
         reference = self.reference
         resultsDir = self.output
@@ -140,7 +140,7 @@ class SNV_Indel(object):
     def vardict(self):
         pass
 
-    # pisces
+    # pisces tumor only
     # https://github.com/Illumina/Pisces
     def pisces(self):
         """
@@ -240,6 +240,7 @@ class SNV_Indel(object):
         reference = self.reference
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         bedFile = self.bed
         MAF = self.MAF
         DP = self.filtDP
@@ -250,31 +251,61 @@ class SNV_Indel(object):
         else:
             bamFile = sampleID + ".bam"
 
+        if pairID != None:
+            checkBQSR = pairID + ".BQSR.bam"
+            if checkBQSR in os.listdir(resultsDir + "/bam"):
+                pairFile = checkBQSR
+            else:
+                pairFile = pairID + ".bam"
+
         tmpDir = resultsDir + "/tempFile/freebayes_" + sampleID
         mkdir(tmpDir)
 
         if bedFile != None:
-            cmd = """
-                freebayes -f {reference} \\
-                    {resultsDir}/bam/{bamFile} \\
-                    -t {bedFile} \\
-                    -F {MAF} -C 5 --min-coverage {DP} \\
-                    --genotyping-max-banddepth 1 \\
-                    > {tmpDir}/{sampleID}.freebayes.vcf
-                sed -i "s/0\\/0/0\\/1/g" {tmpDir}/{sampleID}.freebayes.vcf
-                cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
-            """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
-        else:
-            cmd = """
-                freebayes -f {reference} \\
-                    {resultsDir}/bam/{bamFile} \\
-                    -F {MAF} -C 5 --min-coverage {DP} \\
-                    --genotyping-max-banddepth 1 \\
-                    > {tmpDir}/{sampleID}.freebayes.vcf
-                sed -i "s/0\\/0/0\\/1/g" {tmpDir}/{sampleID}.freebayes.vcf
-                cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
-            """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+            if pairID == None:
+                cmd = """
+                    freebayes -f {reference} \\
+                        {resultsDir}/bam/{bamFile} \\
+                        -t {bedFile} \\
+                        -F {MAF} -C 5 --min-coverage {DP} \\
+                        --genotyping-max-banddepth 1 \\
+                        > {tmpDir}/{sampleID}.freebayes.vcf
+                    sed -i "s/0\\/0/0\\/1/g" {tmpDir}/{sampleID}.freebayes.vcf
+                    cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
+                """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+            else:
+                cmd = """
+                    freebayes -f {reference} \\
+                        {resultsDir}/bam/{bamFile} \\
+                        {resultsDir}/bam/{pairFile} \\
+                        -t {bedFile} \\
+                        -F {MAF} -C 5 --min-coverage {DP} \\
+                        --genotyping-max-banddepth 1 \\
+                        > {tmpDir}/{sampleID}_{pairID}.freebayes.vcf
+                    cp {tmpDir}/{sampleID}_{pairID}.freebayes.vcf {resultsDir}/vcf/{sampleID}_{pairID}.vcf
+                """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, pairFile=pairFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID, pairID=pairID)                
 
+        else:
+            if pairID == None:
+                cmd = """
+                    freebayes -f {reference} \\
+                        {resultsDir}/bam/{bamFile} \\
+                        -F {MAF} -C 5 --min-coverage {DP} \\
+                        --genotyping-max-banddepth 1 \\
+                        > {tmpDir}/{sampleID}.freebayes.vcf
+                    sed -i "s/0\\/0/0\\/1/g" {tmpDir}/{sampleID}.freebayes.vcf
+                    cp {tmpDir}/{sampleID}.freebayes.vcf {resultsDir}/vcf/{sampleID}.vcf
+                """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID)
+            else:
+                cmd = """
+                    freebayes -f {reference} \\
+                        {resultsDir}/bam/{bamFile} \\
+                        {resultsDir}/bam/{pairFile} \\
+                        -F {MAF} -C 5 --min-coverage {DP} \\
+                        --genotyping-max-banddepth 1 \\
+                        > {tmpDir}/{sampleID}_{pairID}.freebayes.vcf
+                    cp {tmpDir}/{sampleID}_{pairID}.freebayes.vcf {resultsDir}/vcf/{sampleID}_{pairID}.vcf
+                """.format(DP=DP, MAF=MAF, tmpDir=tmpDir, bedFile=bedFile, bamFile=bamFile, pairFile=pairFile, reference=reference, resultsDir=resultsDir, sampleID=sampleID, pairID=pairID)
         print(cmd)
         os.system(cmd)
 
@@ -330,20 +361,58 @@ class SNV_Indel(object):
         print(cmd)
         os.system(cmd)
 
+        if pairID != None:
+            p = """
+                gatk GetPileupSummaries \\
+                    -I {resultsDir}/bam/{pairFile} \\
+                    -O {tmpDir}/{pairID}.pileups.table \\
+                    -V {small_exac} \\
+                    -L {bedFile} \\
+                    -R {reference}
+
+                gatk CalculateContamination \\
+                    -I {tmpDir}/{pairID}.pileups.table \\
+                    -O {tmpDir}/{pairID}.contamination.table
+
+                gatk FilterMutectCalls \\
+                    -R {reference} \\
+                    -V {tmpDir}/{pairID}.m2.vcf \\
+                    -O {tmpDir}/{pairID}.m2.contFiltered.vcf \\
+                    --contamination-table {tmpDir}/{pairID}.contamination.table
+
+                bcftools view \\
+                    {tmpDir}/{pairID}.m2.contFiltered.vcf \\
+                    -f PASS,clustered_events,slippage \\
+                    > {tmpDir}/{pairID}.filter.vcf
+                cp {tmpDir}/{pairID}.filter.vcf {resultsDir}/vcf/{pairID}.vcf
+            """.format(tmpDir=tmpDir, pairFile=pairFile, resultsDir=resultsDir, pairID=pairID, small_exac=small_exac, bedFile=bedFile, reference=reference)
+            print(p)
+            os.system(p)
+
     # 过滤
     # bcftools
     # http://samtools.github.io/bcftools/bcftools.html
     def filter(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         DP = self.filtDP
         QUAL = self.filtQUAL
 
-        cmd = """
-            bcftools view \\
-                -i 'MIN(FORMAT/DP)>={DP}' \\
-                {resultsDir}/vcf/{sampleID}.vcf \\
-                > {resultsDir}/vcf/{sampleID}.filter.vcf
-        """.format(QUAL=QUAL, DP=DP, resultsDir=resultsDir, sampleID=sampleID)
+        if pairID == None:
+            cmd = """
+                bcftools view \\
+                    -i 'MIN(FORMAT/DP)>={DP}' \\
+                    {resultsDir}/vcf/{sampleID}.vcf \\
+                    > {resultsDir}/vcf/{sampleID}.filter.vcf
+            """.format(QUAL=QUAL, DP=DP, resultsDir=resultsDir, sampleID=sampleID)
+        else:
+            cmd = """
+                bcftools view \\
+                    -i 'FMT/DP[0]>={DP} && FMT/DP[1]>=100' -s {sampleID} \\
+                    {resultsDir}/vcf/{sampleID}_{pairID}.vcf \\
+                    > {resultsDir}/vcf/{sampleID}.filter.vcf
+            """.format(QUAL=QUAL, DP=DP, resultsDir=resultsDir, sampleID=sampleID, pairID=pairID)
+        
         print(cmd)
         os.system(cmd)

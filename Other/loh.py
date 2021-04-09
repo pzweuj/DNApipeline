@@ -14,4 +14,25 @@ from Other.function import mkdir
 
 
 class LOH(object):
-	pass
+    """
+    LOH检测模块，用于检测杂合性缺失
+    """
+
+    def __init__(self, runningInfo):
+        self.runningInfo = runningInfo
+        self.sample = runningInfo["sample"]
+        self.rawdata = runningInfo["rawdata"]
+        self.output = runningInfo["output"]
+
+        self.threads = str(runningInfo["process"]["threads"])
+        # self.runApp = runningInfo["process"]["Other"]["HLA"]
+        self.buildver = runningInfo["setting"]["Annotation"]["buildver"]
+
+        mkdir(self.output)
+        mkdir(self.output + "/tempFile")
+        mkdir(self.output + "/HLA")
+
+    # LOHHLA
+    # https://bitbucket.org/mcgranahanlab/lohhla/src/master/
+    def lohhla(self):
+        pass

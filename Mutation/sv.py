@@ -135,7 +135,7 @@ class SV(object):
         for line in lumpyResults:
             # print(line)
             if line.startswith("#"):
-                if (sampleID + "\t" + pairID) in line:
+                if pairID != None:
                     line.replace(sampleID + "\t" + pairID, pairID + "\t" + sampleID)
                     lumpyResultsFilter.write(line)
                 else:    
@@ -235,7 +235,6 @@ class SV(object):
         manta = "/mnt/d/ubuntu/software/manta-1.6.0.centos6_x86_64/bin/configManta.py"
         reference = self.reference
         tumorBam = self.bam
-        normalBam = self.normal
         resultsDir = self.output
         sampleID = self.sample
         pairID = self.pair
@@ -256,6 +255,7 @@ class SV(object):
                 zcat {tmpDir}/results/variants/tumorSV.vcf.gz > {tmpDir}/{sampleID}.manta.vcf
             """.format(sampleID=sampleID, manta=manta, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
         else:
+            normalBam = self.normal
             cmd = """
                 rm -rf {tmpDir}/*
                 {manta} \\

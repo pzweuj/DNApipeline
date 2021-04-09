@@ -27,6 +27,7 @@ from Mutation.sv import SV
 from Annotation.anno import Annotation
 from Other.msi import MSI
 from Other.hla import HLA
+from Other.tmb import TMB
 
 def main(runInfo):
     # 基本信息获取
@@ -78,8 +79,10 @@ def main(runInfo):
     Annotation_ = process["Annotation"]
     MSI_ = process["Other"]["MSI"]
     HLA_ = process["Other"]["HLA"]
+    TMB_ = process["Other"]["TMB"]
 
     # 质控
+    # [fastp]
     if QC_ == None:
         print("根据设定不进行质控")
     else:
@@ -94,6 +97,7 @@ def main(runInfo):
             print("未找到此质控方法")
 
     # 比对
+    # [bwa_mem]
     if Mapping_ == None:
         print("根据设定不进行比对")
     else:
@@ -124,6 +128,7 @@ def main(runInfo):
 
     # 变异检测
     ## SNV indel
+    ## [gatk_m2, gatk_haplotypercaller, freebayes, pisces]
     if SnvIndel_ == None:
         print("根据设定不进行SNV/indel检测")
     else:
@@ -151,6 +156,7 @@ def main(runInfo):
         SnvIndel_process.filter()
 
     ## CNV
+    ## [cnvkit]
     if CNV_ == None:
         print("根据设定不进行CNV检测")
     else:
@@ -165,6 +171,7 @@ def main(runInfo):
             print("未找到此CNV检测方法")
 
     ## SV
+    ## [lumpy, manta]
     if SV_ == None:
         print("根据设定不进行SV检测")
     else:
@@ -184,6 +191,7 @@ def main(runInfo):
             print("未找到此SV检测方法")
 
     # 注释
+    # [annovar]
     if Annotation_ == None:
         print("根据设定不进行注释")
     else:
@@ -200,6 +208,7 @@ def main(runInfo):
 
     # Other
     ## MSI
+    ## [msisensorpro, msisensor2, msisensor_ct]
     if MSI_ == None:
         print("根据设定不进行MSI检测")
     else:
@@ -217,6 +226,7 @@ def main(runInfo):
             print("未找到此MSI分析方法")
 
     ## HLA
+    ## [seq2hla, hlascan, optitype, hlahd]
     if HLA_ == None:
         print("根据设定不进行HLA分析")
     else:
@@ -230,9 +240,20 @@ def main(runInfo):
             HLA_process.optitype()
         elif HLA_process.runApp == "hlascan":
             HLA_process.hlascan()
+        elif HLA_process.runApp == "seq2hla":
+            HLA_process.seq2hla()
         else:
             print("未找到此HLA分析方法")
 
+
+    ## TMB
+    if TMB_ == None:
+        print("根据设定不进行TMB计算")
+    else:
+        TMB_process = TMB(runningInformation)
+        print("进行TMB计算 Panel大小设定："  + str(TMB_process.panelSize))
+        print("检测后文件输出目录： " + TMB_process.output + "/TMB")
+        TMB_process.tmb_counter()
 
     # 合并结果到excel表中
     mergeResultsToExcel(output, sample)

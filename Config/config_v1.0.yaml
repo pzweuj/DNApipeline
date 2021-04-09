@@ -7,8 +7,8 @@
 project: "Chem"                                                 # 定义项目
 rawdata: "/home/bioinfo/ubuntu/project/Test_20210319/rawdata"   # 原始数据存放文件夹
 output: "/home/bioinfo/ubuntu/project/Test_20210319/output"     # 结果输出文件夹
-sample:                                          # 样本编号
-pair:                                                           # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
+sample:  "tumor"                                        # 样本编号
+pair: "normal"                                          # 配对样本编号，当填写时，使用配对样本分析模式
 
 ####### 临床/收样信息 #########
 clinical:
@@ -33,14 +33,14 @@ process:                                               # 流程设定值，不�
   Mapping:  "bwa_mem"                                           # 比对程序
   Mutation:                                            # 分析流程
     SNV_indel:  "gatk_m2"                                       # 变异检测
-    CNV:                                               # CNV检测
+    CNV: "cnvkit"                                             # CNV检测
     SV:  "manta"                                       # SV检测
   Annotation: "annovar"                                # 注释
   Other:                                               # 其他分析项目
-    HLA:                                               # HLA分型分析
-    MSI:                                               # MSI分析
-    TMB:                                               # TMB分析
-  Report: true                                        # 是否生成报告
+    HLA: "seq2hla"                                              # HLA分型分析
+    MSI: "msisensorpro"                                              # MSI分析
+    TMB:  true                                             # TMB分析
+  Report: false                                        # 是否生成报告
 
 
 ########## 模块设定 ###########
@@ -81,6 +81,6 @@ setting:
     msisensor2_model: "/home/bioinfo/ubuntu/software/msisensor2/models_hg19_GRCh37"
     msisensorpro_baseline: "/home/bioinfo/ubuntu/project/MSI_20210305/Config/msi_pro_recal/hg19.msi.list_baseline"
     msi_list: "/home/bioinfo/ubuntu/database/hg19/hg19.msi.list"
-    PanelSize:
+    PanelSize: 2000000
   Report:
   REMOVE_TMP: false

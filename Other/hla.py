@@ -177,3 +177,27 @@ class HLA(object):
         """.format(optipipe=optipipe, tmpDir=tmpDir, sampleID=sampleID, resultsDir=resultsDir)
         print(cmd)
         os.system(cmd)
+
+    # seq2HLA
+    # https://github.com/TRON-Bioinformatics/seq2HLA
+    def seq2hla(self):
+        resultsDir = self.output
+        sampleID = self.sample
+        buildver = self.buildver
+        threads = self.threads
+        
+        tmpDir = resultsDir + "/tempFile/seq2hla_" + sampleID
+        self.tmpDir = tmpDir
+        mkdir(tmpDir)
+        self.extractHLA()
+
+        s2h = "/home/bioinfo/ubuntu/software/seq2HLA/seq2HLA.py"
+        cmd = """
+            python {s2h} \\
+                -1 {tmpDir}/{sampleID}.HLA.R1.fastq \\
+                -2 {tmpDir}/{sampleID}.HLA.R2.fastq \\
+                -r {tmpDir}/{sampleID} -p {threads}
+            cp {tmpDir}/{sampleID}-ClassI-class.HLAgenotype4digits {resultsDir}/HLA/{sampleID}.seq2HLA.txt
+        """.format(s2h=s2h, tmpDir=tmpDir, sampleID=sampleID, threads=threads, resultsDir=resultsDir)
+        print(cmd)
+        os.system(cmd)

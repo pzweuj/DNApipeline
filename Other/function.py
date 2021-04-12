@@ -95,13 +95,13 @@ def mergeResultsToExcel(resultsDir, sampleID):
                     ws_cnv = wb.create_sheet(c.replace(".txt", "").replace(sampleID + ".", ""))
                     write_excel(ws_cnv, content)
 
-    if "sv" in dir_list:
-        sv = os.listdir(resultsDir + "/sv")
+    if "Fusion" in dir_list:
+        sv = os.listdir(resultsDir + "/Fusion")
         if len(sv) != 0:
             for s in sv:
                 if ".txt" in s:
                     if sampleID in s:
-                        content = read_txt(resultsDir + "/sv/" + s)
+                        content = read_txt(resultsDir + "/Fusion/" + s)
                         ws_sv = wb.create_sheet(s.replace(".txt", "").replace(sampleID + ".", ""))
                         write_excel(ws_sv, content)
 

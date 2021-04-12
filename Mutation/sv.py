@@ -48,7 +48,7 @@ class SV(object):
 
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
-        mkdir(self.output + "/sv")
+        mkdir(self.output + "/Fusion")
 
     # lumpy
     # https://github.com/arq5x/lumpy-sv
@@ -224,7 +224,7 @@ class SV(object):
                 lumpyResultsFilter.write(output)
         lumpyResultsFilter.close()
         lumpyResults.close()
-        os.system("cp " + tmpDir + "/" + sampleID + ".lumpy.filter.vcf " + resultsDir + "/sv/" + sampleID + ".sv.vcf")
+        os.system("cp " + tmpDir + "/" + sampleID + ".lumpy.filter.vcf " + resultsDir + "/Fusion/" + sampleID + ".sv.vcf")
 
 
 
@@ -330,7 +330,7 @@ class SV(object):
                 mantaResultsFilter.write(line)
         mantaResultsFilter.close()
         mantaResults.close()
-        os.system("cp " + tmpDir + "/" + sampleID + ".manta.filter.vcf " + resultsDir + "/sv/" + sampleID + ".sv.vcf")
+        os.system("cp " + tmpDir + "/" + sampleID + ".manta.filter.vcf " + resultsDir + "/Fusion/" + sampleID + ".sv.vcf")
 
     # 自编sv注释
     # 对数据库进行解析，数据库使用refFlat，可通过ucsc直接下载
@@ -455,8 +455,8 @@ class SV(object):
         refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
         runApp = self.runApp
 
-        svFile = open(resultsDir + "/sv/" + sampleID + ".sv.vcf", "r")
-        svAnno = open(resultsDir + "/sv/" + sampleID + "." + runApp + ".txt", "w")
+        svFile = open(resultsDir + "/Fusion/" + sampleID + ".sv.vcf", "r")
+        svAnno = open(resultsDir + "/Fusion/" + sampleID + "." + runApp + ".txt", "w")
         svAnno.write("chrom1\tbreakpoint1\tgene1\tchrom2\tbreakpoint2\tgene2\tfusionType\tAlt\tgeneSymbol\tPR\tSR\tDP\tVAF\tExon\tTranscript\n")
         for line in svFile:
             if line.startswith("#"):
@@ -549,6 +549,10 @@ class SV(object):
 
                     gene1 = anno1[0][0].split("_")[0]
                     gene2 = anno2[0][0].split("_")[0]
+
+                    if gene1 == gene2:
+                    	continue
+
                     exon_output = ",".join(anno1[0]) + "|" + ",".join(anno2[0])
                     transcript_output = ",".join(anno1[1]) + "|" + ",".join(anno2[1])
                     outputStringList = [chrom, Pos, gene1, chrom2, breakpoint2, gene2, fusionType, Alt, gene1 + "-" + gene2, str(PR_alt), str(SR_alt), str(DP), VAF, exon_output, transcript_output]

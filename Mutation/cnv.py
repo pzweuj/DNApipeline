@@ -24,6 +24,7 @@ class CNV(object):
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
 
+        self.reference = runningInfo["setting"]["Mapping"]["reference"]
         self.threads = str(runningInfo["process"]["threads"])
         self.runApp = runningInfo["process"]["Mutation"]["CNV"]
 
@@ -40,10 +41,11 @@ class CNV(object):
         pairID = self.pair
         CNV = self.runningInfo["setting"]["Mutation"]["CNV"]
         baseline = CNV["baseline"]
+        reference = self.reference
         target = CNV["target"]
         antitarget = CNV["antitarget"]
-        threads = self.threads
         refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
+        threads = self.threads
 
         mkdir(resultsDir + "/cnv")
         tmpDir = resultsDir + "/tempFile/cnvkit_" + sampleID
@@ -51,32 +53,49 @@ class CNV(object):
 
         if pairID == None:
             cmd = """
-                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
-                    {target} -o {tmpDir}/{sampleID}.targetcoverage.cnn
-                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \
-                    {antitarget} -o {tmpDir}/{sampleID}.antitargetcoverage.cnn
-                cnvkit.py fix {tmpDir}/{sampleID}.targetcoverage.cnn \
-                    {tmpDir}/{sampleID}.antitargetcoverage.cnn \
+                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \\
+                    {target} -o {tmpDir}/{sampleID}.targetcoverage.cnn -p {threads}
+                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \\
+                    {antitarget} -o {tmpDir}/{sampleID}.antitargetcoverage.cnn -p {threads}
+                cnvkit.py fix {tmpDir}/{sampleID}.targetcoverage.cnn \\
+                    {tmpDir}/{sampleID}.antitargetcoverage.cnn \\
                     {baseline} -o {tmpDir}/{sampleID}.cnr
-                cnvkit.py segment {tmpDir}/{sampleID}.cnr \
-                    -o {tmpDir}/{sampleID}.cns
-                cnvkit.py call {tmpDir}/{sampleID}.cns \
+                cnvkit.py segment {tmpDir}/{sampleID}.cnr \\
+                    -o {tmpDir}/{sampleID}.cns -p {threads}
+                cnvkit.py call {tmpDir}/{sampleID}.cns \\
                     -o {tmpDir}/{sampleID}.call.cns
-                cnvkit.py scatter {tmpDir}/{sampleID}.cnr \
+                cnvkit.py scatter {tmpDir}/{sampleID}.cnr \\
                     -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.scatter.pdf
-                cnvkit.py diagram {tmpDir}/{sampleID}.cnr \
+                cnvkit.py diagram {tmpDir}/{sampleID}.cnr \\
                     -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.diagram.pdf
-            """.format(resultsDir=resultsDir, sampleID=sampleID, target=target, tmpDir=tmpDir, antitarget=antitarget, baseline=baseline)
+            """.format(resultsDir=resultsDir, sampleID=sampleID, target=target, tmpDir=tmpDir, antitarget=antitarget, baseline=baseline, threads=threads)
         else:
             cmd = """
-                cnvkit.py batch {resultsDir}/bam/{sampleID}.bam \\
-                    --normal {resultsDir}/bam/{pairID}.bam \\
-                    --method hybrid \\
-                    --targets {target} \\
-                    --annotate {refFlat} \\
-                    --output-dir {tmpDir} \\
-                    --diagram --scatter -p {threads}
-            """.format(resultsDir=resultsDir, sampleID=sampleID, pairID=pairID, target=target, refFlat=refFlat, tmpDir=tmpDir, threads=threads)
+                cnvkit.py coverage {resultsDir}/bam/{pairID}.bam \\
+                    {target} -o {tmpDir}/{pairID}.targetcoverage.cnn -p {threads}
+                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \\
+                    {target} -o {tmpDir}/{sampleID}.targetcoverage.cnn -p {threads}
+                cnvkit.py coverage {resultsDir}/bam/{pairID}.bam \\
+                    {antitarget} -o {tmpDir}/{pairID}.antitargetcoverage.cnn -p {threads}
+                cnvkit.py coverage {resultsDir}/bam/{sampleID}.bam \\
+                    {antitarget} -o {tmpDir}/{sampleID}.antitargetcoverage.cnn -p {threads}
+
+                cnvkit.py reference {tmpDir}/{pairID}.antitargetcoverage.cnn \\
+                    {tmpDir}/{pairID}.targetcoverage.cnn \\
+                    --fasta {reference} -o {tmpDir}/{pairID}.cnn
+
+                cnvkit.py fix {tmpDir}/{sampleID}.targetcoverage.cnn \\
+                    {tmpDir}/{sampleID}.antitargetcoverage.cnn \\
+                    {tmpDir}/{pairID}.cnn -o {tmpDir}/{sampleID}.cnr
+                cnvkit.py segment {tmpDir}/{sampleID}.cnr \\
+                    -o {tmpDir}/{sampleID}.cns -p {threads}
+                cnvkit.py call {tmpDir}/{sampleID}.cns \\
+                    -o {tmpDir}/{sampleID}.call.cns
+                cnvkit.py scatter {tmpDir}/{sampleID}.cnr \\
+                    -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.scatter.pdf
+                cnvkit.py diagram {tmpDir}/{sampleID}.cnr \\
+                    -s {tmpDir}/{sampleID}.cns -o {tmpDir}/{sampleID}.diagram.pdf
+            """.format(resultsDir=resultsDir, sampleID=sampleID, pairID=pairID, target=target, antitarget=antitarget, tmpDir=tmpDir, reference=reference, threads=threads)
 
         print(cmd)
         os.system(cmd)

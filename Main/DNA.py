@@ -177,7 +177,7 @@ def main(runInfo):
     else:
         SV_process = SV(runningInformation)
         print("使用 " + SV_process.runApp + " 进行结构变异/融合变异检测")
-        print("检测后文件输出目录： " + SV_process.output + "/sv")
+        print("检测后文件输出目录： " + SV_process.output + "/Fusion")
         print("使用线程数 " + SV_process.threads)
         if SV_process.runApp == "lumpy":
             SV_process.lumpy()

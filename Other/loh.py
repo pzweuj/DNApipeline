@@ -33,6 +33,24 @@ class LOH(object):
         mkdir(self.output + "/HLA")
 
     # LOHHLA
+    # https://github.com/slagtermaarten/LOHHLA
     # https://bitbucket.org/mcgranahanlab/lohhla/src/master/
+    # 与原版对比增加了hg38支持以及修正部分bug ---> slagtermaarten
+    # 将picard部分更新为新picard ---> pzw
     def lohhla(self):
+        pass
+
+    # HLALOH
+    # https://github.com/Xiaohuaniu0032/HLALOH
+    def hlaloh(self):
+        pass
+
+    # PyLOH
+    # https://github.com/uci-cbcl/PyLOH
+    def pyloh(self):
+        pass
+
+    # cnvkit
+    # 应该可以使用cnvkit来检测
+    def cnvkit(self):
         pass

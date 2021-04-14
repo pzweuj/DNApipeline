@@ -226,7 +226,7 @@ def main(runInfo):
             print("未找到此MSI分析方法")
 
     ## HLA
-    ## [seq2hla, hlascan, optitype, hlahd]
+    ## [optitype, seq2hla, hlascan, hlahd]
     if HLA_ == None:
         print("根据设定不进行HLA分析")
     else:
@@ -247,7 +247,9 @@ def main(runInfo):
 
 
     ## TMB
-    if TMB_ == None:
+    if TMB == None:
+        print("根据设定不进行TMB计算")
+    elif TMB == False:
         print("根据设定不进行TMB计算")
     else:
         TMB_process = TMB(runningInformation)

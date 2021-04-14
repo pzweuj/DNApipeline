@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.13"
+__Version__ = "1.00"
 __Author__ = "pzweuj"
-__Date__ = "20210407"
+__Date__ = "20210414"
 
 import os
 import sys
@@ -26,6 +26,7 @@ class HLA(object):
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
+        self.pair = runningInfo["pair"]
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
 
@@ -41,6 +42,7 @@ class HLA(object):
     def extractHLA(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         buildver = self.buildver
         threads = self.threads
         tmpDir = self.tmpDir
@@ -74,6 +76,11 @@ class HLA(object):
             exit()
 
         extractRegion = " ".join(HLA)
+        
+        # 当有配对样本，优先使用配对样本进行HLA分型
+        if pairID != None:
+            sampleID = pairID
+
         cmd = """
             samtools view {resultsDir}/bam/{sampleID}.bam \\
                 {extractRegion} \\
@@ -92,9 +99,11 @@ class HLA(object):
 
     # HLA-HD
     # https://www.genome.med.kyoto-u.ac.jp/HLA-HD/
+    # 速度慢
     def hlahd(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         buildver = self.buildver
         threads = self.threads
 
@@ -108,6 +117,8 @@ class HLA(object):
         mkdir(tmpDir)
         self.extractHLA()
 
+        if pairID != None:
+            sampleID = pairID
         cmd = """
             hlahd.sh -t {threads} -m 100 -c 0.95 -f {freq} \\
                 {tmpDir}/{sampleID}.HLA.R1.fastq {tmpDir}/{sampleID}.HLA.R2.fastq \\
@@ -120,9 +131,11 @@ class HLA(object):
 
     # HLAscan
     # https://github.com/SyntekabioTools/HLAscan
+    # 用起来麻烦，还得跑仨次
     def hlascan(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         buildver = self.buildver
         threads = self.threads
         hla_scan = "/home/bioinfo/ubuntu/software/HLAscan/hla_scan_r_v2.1.4"
@@ -132,6 +145,9 @@ class HLA(object):
         self.tmpDir = tmpDir
         mkdir(tmpDir)
         self.extractHLA()
+
+        if pairID != None:
+            sampleID = pairID
 
         print("开始进行HLA分型")
         cmd = """
@@ -157,9 +173,11 @@ class HLA(object):
     # OptiType
     # https://github.com/FRED-2/OptiType
     # optitype线程数需要修改软件配置文件，目前默认为8
+    # 速度慢，较准确，推荐使用
     def optitype(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         buildver = self.buildver
         threads = self.threads
         optipipe = "/home/bioinfo/ubuntu/software/OptiType-1.3.5/OptiTypePipeline.py"
@@ -169,6 +187,8 @@ class HLA(object):
         mkdir(tmpDir)
         self.extractHLA()
 
+        if pairID != None:
+            sampleID = pairID
         cmd = """
             python {optipipe} \\
                 -i {tmpDir}/{sampleID}.HLA.R1.fastq {tmpDir}/{sampleID}.HLA.R2.fastq \\
@@ -180,9 +200,11 @@ class HLA(object):
 
     # seq2HLA
     # https://github.com/TRON-Bioinformatics/seq2HLA
+    # 速度快，准确度稍差，建议在数据量非常大时使用
     def seq2hla(self):
         resultsDir = self.output
         sampleID = self.sample
+        pairID = self.pair
         buildver = self.buildver
         threads = self.threads
         
@@ -191,6 +213,8 @@ class HLA(object):
         mkdir(tmpDir)
         self.extractHLA()
 
+        if pairID != None:
+            sampleID = pairID
         s2h = "/home/bioinfo/ubuntu/software/seq2HLA/seq2HLA.py"
         cmd = """
             python {s2h} \\
@@ -201,3 +225,5 @@ class HLA(object):
         """.format(s2h=s2h, tmpDir=tmpDir, sampleID=sampleID, threads=threads, resultsDir=resultsDir)
         print(cmd)
         os.system(cmd)
+
+# end

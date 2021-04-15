@@ -62,10 +62,10 @@ class TMB(object):
                 lines = line.replace("\n", "").split("\t")
                 func = lines[5]
                 exonic = lines[8]
-                cosmic = lines[89]
-                polyDB = lines[12]
-                polyDB_eas = lines[20]
-                infos = lines[99].split(":")
+                cosmic = lines[88]
+                polyDB = lines[11]
+                polyDB_eas = lines[19]
+                infos = lines[98].split(":")
                 DP = int(infos[3])
                 AD = int(infos[1].split(",")[1])
                 AF = infos[2]

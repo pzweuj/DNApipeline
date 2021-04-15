@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.18"
+__Version__ = "0.19"
 __Author__ = "pzweuj"
-__Date__ = "20210406"
+__Date__ = "20210415"
 
 import os
 import sys
@@ -18,6 +18,8 @@ class Annotation(object):
     注释模块
     后续结果将全部改放到中间文件夹中，再使用自建脚本处理为excel表格后
     再放置到annotation文件夹中，表格格式保持一致
+    注释流程不再可选比对工具，而是改用先使用snpEff注释，再使用annovar注释，最后对结果进行整理的模式
+    目前未完成，更新中
     """
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
@@ -33,6 +35,60 @@ class Annotation(object):
         mkdir(self.output + "/tempFile")
         mkdir(self.output + "/annotation")
 
+
+    # snpEff
+    # https://pcingola.github.io/SnpEff/
+    def snpeff(self):
+        humandb = self.runningInfo["setting"]["Annotation"]["humandb"]
+        buildver = self.runningInfo["setting"]["Annotation"]["buildver"]
+        resultsDir = self.output
+        sampleID = self.sample
+        pairID = self.pair
+
+        if pairID == None:
+            vcfFile = resultsDir + "/vcf/" + sampleID + ".vcf"
+        else:
+            vcfFile = resultsDir + "/vcf/" + sampleID + ".filter.vcf"        
+
+        tmpDir = resultsDir + "/tempFile/snpeff_" + sampleID
+        cmd = """
+            java -jar /home/bioinfo/ubuntu/software/snpEff/snpEff.jar \\
+                -c /home/bioinfo/ubuntu/software/snpEff/snpEff.config \\
+                {buildver} {vcfFile} > {tmpDir}/{sampleID}.snpeff.vcf
+            cp {tmpDir}/{sampleID}.snpeff.vcf {resultsDir}/annotation/
+        """.format(buildver=buildver, vcfFile=vcfFile, tmpDir=tmpDir, sampleID=sampleID, resultsDir=resultsDir)
+        print(cmd)
+        os.system(cmd)
+    
+    # annovar
+    # https://annovar.openbioinformatics.org/en/latest/
+    def annovar(self):
+        humandb = self.runningInfo["setting"]["Annotation"]["humandb"]
+        buildver = self.runningInfo["setting"]["Annotation"]["buildver"]
+        resultsDir = self.output
+        sampleID = self.sample
+        pairID = self.pair
+        threads = self.threads
+
+        tmpDir = resultsDir + "/tempFile/annovar_" + sampleID
+        mkdir(tmpDir)
+
+        self.snpeff()
+
+        cmd = """
+            convert2annovar.pl -format vcf4 \\
+                {resultsDir}/annotation/{sampleID}.snpeff.vcf \\
+                --includeinfo > {tmpDir}/{sampleID}.avinput
+            table_annovar.pl {tmpDir}/{sampleID}.avinput \\
+                {humandb} -buildver {buildver} \\
+                -out {resultsDir}/annotation/{sampleID} -remove \\
+                -protocol refGene,avsnp150,gnomad211_genome,clinvar_20210308,JaxCkb,Civic,OncoKB,dbnsfp41a,cosmic92_coding \\
+                -operation g,f,f,f,f,f,f,f,f \\
+                -nastring - -thread {threads} -otherinfo
+        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
+        print(cmd)
+        os.system(cmd)
+    
     # annovar结果过滤与标准化
     def annovarResultsFilter(self):
         buildver = self.runningInfo["setting"]["Annotation"]["buildver"]
@@ -51,7 +107,7 @@ class Annotation(object):
             if line.startswith("Chr"):
                 lineAfterSplit = line.split("\t")
                 outputList = []
-                for i in range(90):
+                for i in range(89):
                     need = lineAfterSplit[i]
                     outputList.append(need)
                 outputList.append("GT")
@@ -69,8 +125,8 @@ class Annotation(object):
                 Ref = lineAfterSplit[3]
                 Alt = lineAfterSplit[4]
                 ExonicFunc = lineAfterSplit[8]
-                FORMAT = lineAfterSplit[98].split(":")
-                FORMAT_results = lineAfterSplit[99].split(":")
+                FORMAT = lineAfterSplit[97].split(":")
+                FORMAT_results = lineAfterSplit[98].split(":")
 
                 Format_list_zipped = zip(FORMAT, FORMAT_results)
                 Format_list = list(Format_list_zipped)
@@ -89,7 +145,7 @@ class Annotation(object):
                     AF = "-"
 
                 outputList = []
-                for i in range(90):
+                for i in range(89):
                     need = lineAfterSplit[i]
                     outputList.append(need)
 
@@ -113,42 +169,4 @@ class Annotation(object):
         SnpOutput.close()
         IndelOutput.close()
         print("完成annovar结果过滤与格式调整")
-
-    # annovar
-    # https://annovar.openbioinformatics.org/en/latest/
-    def annovar(self): 
-        humandb = self.runningInfo["setting"]["Annotation"]["humandb"]
-        buildver = self.runningInfo["setting"]["Annotation"]["buildver"]
-        resultsDir = self.output
-        sampleID = self.sample
-        pairID = self.pair
-        threads = self.threads
-
-        tmpDir = resultsDir + "/tempFile/annovar_" + sampleID
-        mkdir(tmpDir)
-
-        if pairID == None:
-            vcfFile = resultsDir + "/vcf/" + sampleID + ".vcf"
-        else:
-            vcfFile = resultsDir + "/vcf/" + sampleID + ".filter.vcf"
-
-        cmd = """
-            convert2annovar.pl -format vcf4 {vcfFile} \\
-                --includeinfo > {tmpDir}/{sampleID}.avinput
-            table_annovar.pl {tmpDir}/{sampleID}.avinput \\
-                {humandb} -buildver {buildver} \\
-                -out {resultsDir}/annotation/{sampleID} -remove \\
-                -protocol refGene,cytoBand,avsnp150,gnomad211_genome,clinvar_20210308,JaxCkb,Civic,OncoKB,dbnsfp41a,cosmic92_coding \\
-                -operation g,r,f,f,f,f,f,f,f,f \\
-                -nastring - -thread {threads} -otherinfo
-        """.format(vcfFile=vcfFile, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, humandb=humandb, threads=threads, buildver=buildver)
-        print(cmd)
-        os.system(cmd)
-
-
-    def snpeff(self):
-        pass
-
-    def vep(self):
-        pass
 

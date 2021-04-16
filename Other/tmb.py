@@ -35,7 +35,6 @@ class TMB(object):
     def tmb_counter(self):
         resultsDir = self.output
         sampleID = self.sample
-        buildver = self.buildver
         panelSize = self.panelSize
 
         tmpDir = resultsDir + "/tempFile/TMB_" + sampleID
@@ -45,7 +44,7 @@ class TMB(object):
         cosmic_filter = 5
         AF_filter = 0.05
 
-        annovarFile = open(resultsDir + "/annotation/" + sampleID + ".{buildver}_multianno.txt".format(buildver=buildver), "r")
+        annovarFile = open(resultsDir + "/annotation/" + sampleID + ".Anno.txt", "r")
         resultsFile = open(tmpDir + "/" + sampleID + ".tmb.txt", "w")
         resultsFile.write("# " + sampleID + "\n")
         resultsFile.write("panelSize\t" + str(panelSize) + "\n")
@@ -60,19 +59,16 @@ class TMB(object):
         for line in annovarFile:
             if not line.startswith("Chr\t"):
                 lines = line.replace("\n", "").split("\t")
-                func = lines[5]
-                exonic = lines[8]
-                cosmic = lines[88]
-                polyDB = lines[11]
-                polyDB_eas = lines[19]
-                infos = lines[98].split(":")
-                DP = int(infos[3])
-                AD = int(infos[1].split(",")[1])
-                AF = infos[2]
-                if len(AF.split(",")) > 1:
-                    AF = float(AF.split(",")[0])
-                else:
-                    AF = float(AF)
+                func = lines[15]
+                cosmic = lines[31]
+                polyDB = lines[18]
+                polyDB_eas = lines[22]
+                Jax = lines[28]
+                Civic = lines[29]
+                Onco = lines[30]
+                DP = int(lines[13])
+                AD = int(lines[14])
+                AF = float(lines[10].replace("%", "")) / 100
 
                 # 处理内容
                 if cosmic == "-":
@@ -93,7 +89,6 @@ class TMB(object):
                     polyDB_eas = 0
                 else:
                     polyDB_eas = float(polyDB_eas)
-
                 
                 # 过滤
                 # 滤去AF小于等于5%的点
@@ -111,12 +106,22 @@ class TMB(object):
                     continue
 
                 # 仅保留exonic与splicing
-                if "exonic" in func:
+                if "ncRNA" in func:
+                	continue
+                elif "exonic" in func:
                     pass
                 elif "splicing" in func:
                     pass
                 else:
                     continue
+
+                # 过滤热点
+                if Jax != "-":
+                	continue
+                if Civic != "-":
+                	continue
+                if Onco != "-":
+                	continue
 
                 # 通过过滤
                 print(line)
@@ -125,6 +130,7 @@ class TMB(object):
         panelSize_mb = float(panelSize) / 1000000
         TMB_out = n / panelSize_mb
         resultsFile.write("TMB\t" + "%.2f" % TMB_out + "\n")
+        print("TMB: ", TMB_out)
 
 
         # 在相同癌种中的排位，数据缺乏，暂缺

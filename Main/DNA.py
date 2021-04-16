@@ -194,16 +194,15 @@ def main(runInfo):
     # [annovar]
     if Annotation_ == None:
         print("根据设定不进行注释")
+    elif Annotation_ == False:
+        print("根据设定不进行注释")
     else:
         Annotation_process = Annotation(runningInformation)
-        print("使用 " + Annotation_process.runApp + " 进行注释")
+        print("使用多工具进行注释")
         print("检测后文件输出目录： " + Annotation_process.output + "/annotation")
         print("使用线程数 " + Annotation_process.threads)
-        if Annotation_process.runApp == "annovar":
-            Annotation_process.annovar()
-            Annotation_process.annovarResultsFilter()
-        else:
-            print("未找到此注释方法")
+        Annotation_process.annovar()
+        Annotation_process.ResultsFilter()
 
 
     # Other
@@ -247,9 +246,9 @@ def main(runInfo):
 
 
     ## TMB
-    if TMB == None:
+    if TMB_ == None:
         print("根据设定不进行TMB计算")
-    elif TMB == False:
+    elif TMB_ == False:
         print("根据设定不进行TMB计算")
     else:
         TMB_process = TMB(runningInformation)

@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.16"
+__Version__ = "0.17"
 __Author__ = "pzweuj"
-__Date__ = "20210406"
+__Date__ = "20210416"
 
 import os
 import sys
@@ -138,6 +138,10 @@ class SNV_Indel(object):
         os.system(cmd)
 
     def vardict(self):
+        pass
+
+
+    def varscan2(self):
         pass
 
     # pisces tumor only
@@ -316,20 +320,12 @@ class SNV_Indel(object):
         reference = self.reference
         resultsDir = self.output
         sampleID = self.sample
-        pairID = self.pair
 
         checkBQSR = sampleID + ".BQSR.bam"
         if checkBQSR in os.listdir(resultsDir + "/bam"):
             bamFile = checkBQSR
         else:
-            bamFile = sampleID + ".bam"
-
-        if pairID != None:
-            pairBQSR = pairID + ".BQSR.bam"
-            if pairBQSR in os.listdir(resultsDir + "/bam"):
-                pairFile = pairBQSR
-            else:
-                pairFile = pairID + ".bam"            
+            bamFile = sampleID + ".bam"       
 
         tmpDir = resultsDir + "/tempFile/gatk_" + sampleID
         mkdir(tmpDir)
@@ -360,34 +356,6 @@ class SNV_Indel(object):
         """.format(tmpDir=tmpDir, bamFile=bamFile, resultsDir=resultsDir, sampleID=sampleID, small_exac=small_exac, bedFile=bedFile, reference=reference)
         print(cmd)
         os.system(cmd)
-
-        if pairID != None:
-            p = """
-                gatk GetPileupSummaries \\
-                    -I {resultsDir}/bam/{pairFile} \\
-                    -O {tmpDir}/{pairID}.pileups.table \\
-                    -V {small_exac} \\
-                    -L {bedFile} \\
-                    -R {reference}
-
-                gatk CalculateContamination \\
-                    -I {tmpDir}/{pairID}.pileups.table \\
-                    -O {tmpDir}/{pairID}.contamination.table
-
-                gatk FilterMutectCalls \\
-                    -R {reference} \\
-                    -V {tmpDir}/{pairID}.m2.vcf \\
-                    -O {tmpDir}/{pairID}.m2.contFiltered.vcf \\
-                    --contamination-table {tmpDir}/{pairID}.contamination.table
-
-                bcftools view \\
-                    {tmpDir}/{pairID}.m2.contFiltered.vcf \\
-                    -f PASS,clustered_events,slippage \\
-                    > {tmpDir}/{pairID}.filter.vcf
-                cp {tmpDir}/{pairID}.filter.vcf {resultsDir}/vcf/{pairID}.vcf
-            """.format(tmpDir=tmpDir, pairFile=pairFile, resultsDir=resultsDir, pairID=pairID, small_exac=small_exac, bedFile=bedFile, reference=reference)
-            print(p)
-            os.system(p)
 
     # 过滤
     # bcftools

@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.2"
+__Version__ = "0.31"
 __Author__ = "pzweuj"
-__Date__ = "20210402"
+__Date__ = "20210416"
 
 
 import os
@@ -329,3 +329,4 @@ class Mapping(object):
         
         print("bamdst捕获分析完成！")
 
+# end

@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.19"
+__Version__ = "0.20"
 __Author__ = "pzweuj"
-__Date__ = "20210407"
+__Date__ = "20210416"
 
 
 import os
@@ -11,7 +11,6 @@ import time
 import sys
 import yaml
 from openpyxl import Workbook
-# from docx2pdf import convert
 
 # 配置文件读入
 def getRunningInfo(runInfo):
@@ -82,9 +81,11 @@ def mergeResultsToExcel(resultsDir, sampleID):
         if len(anno) != 0:
             for a in anno:
                 if sampleID in a:
-                    content = read_txt(resultsDir + "/annotation/" + a)
-                    ws_anno = wb.create_sheet(a.replace(".txt", "").replace(sampleID + ".", ""))
-                    write_excel(ws_anno, content)
+                    if not "multianno" in a:
+                        if "txt" in a:
+                            content = read_txt(resultsDir + "/annotation/" + a)
+                            ws_anno = wb.create_sheet(a.replace(".txt", "").replace(sampleID + ".", ""))
+                            write_excel(ws_anno, content)
 
     if "cnv" in dir_list:
         cnv = os.listdir(resultsDir + "/cnv")
@@ -123,6 +124,15 @@ def mergeResultsToExcel(resultsDir, sampleID):
                     ws_HLA = wb.create_sheet(h.replace(".txt", "").replace(sampleID + ".", ""))
                     write_excel(ws_HLA, content)
     
+    if "TMB" in dir_list:
+        tmb = os.listdir(resultsDir + "/TMB")
+        if len(tmb) != 0:
+            for t in tmb:
+                if sampleID in t:
+                    content = read_txt(resultsDir + "/TMB/" + t)
+                    ws_TMB = wb.create_sheet(t.replace(".txt", "").replace(sampleID + ".", ""))
+                    write_excel(ws_TMB, content)
+
     wb.remove(wb["Sheet"])
     wb.save(resultsDir + "/results/" + sampleID + ".xlsx")
     print(sampleID + " 结果已汇总到excel表格中： " + resultsDir + "/results/" + sampleID + ".xlsx")

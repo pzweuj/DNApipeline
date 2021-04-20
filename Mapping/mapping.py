@@ -46,6 +46,8 @@ class Mapping(object):
     # https://github.com/lh3/bwa
     # samtools
     # https://github.com/samtools/samtools
+    # sambamba
+    # https://lomereiter.github.io/sambamba/
     def bwa_mem(self):
         reference = self.reference
         threads = self.threads
@@ -55,6 +57,9 @@ class Mapping(object):
 
         tmpDir = resultsDir + "/tempFile/bwa_" + sampleID
         mkdir(tmpDir)
+        tmp = tmpDir + "/tmp"
+        mkdir(tmp)
+
         cmd = """
             bwa mem -t {threads} \\
                 -M \\
@@ -62,19 +67,21 @@ class Mapping(object):
                 {reference} \\
                 {resultsDir}/cleandata/{sampleID}.clean_R1.fastq.gz \\
                 {resultsDir}/cleandata/{sampleID}.clean_R2.fastq.gz \\
-                | samtools view -bSh --threads {threads} - > {tmpDir}/{sampleID}.bam
-            samtools sort {tmpDir}/{sampleID}.bam -@ {threads} -o {tmpDir}/{sampleID}.sort.bam
-            samtools index {tmpDir}/{sampleID}.sort.bam
+                | sambamba view -f bam -t {threads} -S /dev/stdin > {tmpDir}/{sampleID}.bam
+            sambamba sort {tmpDir}/{sampleID}.bam -t {threads} -o {tmpDir}/{sampleID}.sort.bam --tmpdir {tmp} -p
             rm {tmpDir}/{sampleID}.bam
             cp {tmpDir}/{sampleID}.sort.bam {resultsDir}/bam/{sampleID}.bam
             cp {tmpDir}/{sampleID}.sort.bam.bai {resultsDir}/bam/{sampleID}.bam.bai
-        """.format(tmpDir=tmpDir, threads=threads, sampleID=sampleID, reference=reference, resultsDir=resultsDir)
+            rm -rf {tmp}
+        """.format(tmpDir=tmpDir, threads=threads, sampleID=sampleID, reference=reference, resultsDir=resultsDir, tmp=tmp)
         print(cmd)
         os.system(cmd)
 
         if pairID != None:
             pairDir = resultsDir + "/tempFile/bwa_" + pairID
             mkdir(pairDir)
+            tmp = pairDir + "/tmp"
+            mkdir(tmp)
             p = """
                 bwa mem -t {threads} \\
                     -M \\
@@ -82,13 +89,13 @@ class Mapping(object):
                     {reference} \\
                     {resultsDir}/cleandata/{pairID}.clean_R1.fastq.gz \\
                     {resultsDir}/cleandata/{pairID}.clean_R2.fastq.gz \\
-                    | samtools view -bSh --threads {threads} - > {pairDir}/{pairID}.bam
-                samtools sort {pairDir}/{pairID}.bam -@ {threads} -o {pairDir}/{pairID}.sort.bam
-                samtools index {pairDir}/{pairID}.sort.bam
-                rm {pairDir}/{pairID}.bam
+                    | sambamba view -f bam -t {threads} -S /dev/stdin > {tmpDir}/{pairID}.bam
+                sambamba sort {tmpDir}/{pairID}.bam -t {threads} -o {tmpDir}/{pairID}.sort.bam --tmpdir {tmp} -p
+                rm {tmpDir}/{pairID}.bam
                 cp {pairDir}/{pairID}.sort.bam {resultsDir}/bam/{pairID}.bam
                 cp {pairDir}/{pairID}.sort.bam.bai {resultsDir}/bam/{pairID}.bam.bai
-            """.format(pairDir=pairDir, threads=threads, pairID=pairID, reference=reference, resultsDir=resultsDir)
+                rm -rf {tmp}
+            """.format(tmpDir=tmpDir, threads=threads, pairID=pairID, reference=reference, resultsDir=resultsDir, tmp=tmp)
             print(p)
             os.system(p)
 
@@ -104,17 +111,19 @@ class Mapping(object):
 
         tmpDir = resultsDir + "/tempFile/gencore_" + sampleID
         mkdir(tmpDir)
+        tmp = tmpdir + "/tmp"
+        mkdir(tmp)
         cmd = """
             gencore -i {resultsDir}/bam/{sampleID}.bam \\
                 -r {reference} \\
                 -o {tmpDir}/{sampleID}.umi.bam \\
                 -u UMI -s 2 -d 1 \\
                 -j {tmpDir}/{sampleID}.json -h {tmpDir}/{sampleID}.html
-            samtools sort -@ {threads} {tmpDir}/{sampleID}.umi.bam -o {tmpDir}/{sampleID}.umi.sort.bam
-            samtools index {tmpDir}/{sampleID}.umi.sort.bam
+            sambamba sort -t {threads} {tmpDir}/{sampleID}.umi.bam -o {tmpDir}/{sampleID}.umi.sort.bam --tmpdir {tmp} -p
             cp {tmpDir}/{sampleID}.umi.sort.bam {resultsDir}/bam/{sampleID}.bam
             cp {tmpDir}/{sampleID}.umi.sort.bam.bai {resultsDir}/bam/{sampleID}.bam.bai
-        """.format(reference=reference, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir, threads=threads)
+            rm -rf {tmp}
+        """.format(reference=reference, resultsDir=resultsDir, sampleID=sampleID, tmpDir=tmpDir, threads=threads, tmp=tmp)
         print(cmd)
         os.system(cmd)
 
@@ -127,11 +136,11 @@ class Mapping(object):
                     -o {pairDir}/{pairID}.umi.bam \\
                     -u UMI -s 2 -d 1 \\
                     -j {pairDir}/{pairID}.json -h {pairDir}/{pairID}.html
-                samtools sort -@ {threads} {pairDir}/{pairID}.umi.bam -o {pairDir}/{pairID}.umi.sort.bam
-                samtools index {pairDir}/{pairID}.umi.sort.bam
+                sambamba sort -t {threads} {pairDir}/{pairID}.umi.bam -o {pairDir}/{pairID}.umi.sort.bam --tmpdir {tmp} -p
                 cp {pairDir}/{pairID}.umi.sort.bam {resultsDir}/bam/{pairID}.bam
                 cp {pairDir}/{pairID}.umi.sort.bam.bai {resultsDir}/bam/{pairID}.bam.bai
-            """.format(reference=reference, resultsDir=resultsDir, pairID=pairID, pairDir=pairDir, threads=threads)
+                rm -rf {tmp}
+            """.format(reference=reference, resultsDir=resultsDir, pairID=pairID, pairDir=pairDir, threads=threads, tmp=tmp)
             print(p)
             os.system(p)
 
@@ -141,37 +150,47 @@ class Mapping(object):
         resultsDir = self.output
         sampleID = self.sample
         pairID = self.pair
+        threads = self.threads
         if self.removeDups:
-            remove = "true"
+            remove = "-r"
         else:
-            remove = "false"
+            remove = ""
 
         tmpDir = resultsDir + "/tempFile/markDups_" + sampleID
         mkdir(tmpDir)
+        tmp = tmpDir + "/tmp"
+        mkdir(tmp)
+        
         cmd = """
-            gatk MarkDuplicates \\
-                -I {resultsDir}/bam/{sampleID}.bam \\
-                -O {tmpDir}/{sampleID}.marked.bam \\
-                -M {tmpDir}/{sampleID}.dups.txt \\
-                --REMOVE_DUPLICATES {remove}
+            sambamba markdup \\
+                {resultsDir}/bam/{sampleID}.bam \\
+                {tmpDir}/{sampleID}.marked.bam \\
+                -p --overflow-list-size 600000 \\
+                --tmpdir {tmp} \\
+                -t {threads} {remove}
+            rm -rf {tmp}
             cp {tmpDir}/{sampleID}.marked.bam {resultsDir}/bam/{sampleID}.bam
-            samtools index {resultsDir}/bam/{sampleID}.bam
-        """.format(tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, remove=remove)
+            cp {tmpDir}/{sampleID}.marked.bam.bai {resultsDir}/bam/{sampleID}.bam.bai            
+        """.format(threads=threads, tmpDir=tmpDir, resultsDir=resultsDir, sampleID=sampleID, remove=remove, tmp=tmp)
         print(cmd)
         os.system(cmd)
 
         if pairID != None:
             pairDir = resultsDir + "/tempFile/markDups_" + pairID
             mkdir(pairDir)
+            tmp = pairDir + "/tmp"
+            mkdir(tmp)
             p = """
-                gatk MarkDuplicates \\
-                    -I {resultsDir}/bam/{pairID}.bam \\
-                    -O {pairDir}/{pairID}.marked.bam \\
-                    -M {pairDir}/{pairID}.dups.txt \\
-                    --REMOVE_DUPLICATES {remove}
+                sambamba markdup \\
+                    {resultsDir}/bam/{pairID}.bam \\
+                    {pairDir}/{pairID}.marked.bam \\
+                    -p --overflow-list-size 600000 \\
+                    --tmpdir {tmp} \\
+                    -t {threads} {remove}
+                rm -rf {tmp}
                 cp {pairDir}/{pairID}.marked.bam {resultsDir}/bam/{pairID}.bam
-                samtools index {resultsDir}/bam/{pairID}.bam
-            """.format(pairDir=pairDir, resultsDir=resultsDir, pairID=pairID, remove=remove)
+                cp {pairDir}/{pairID}.marked.bam.bai {resultsDir}/bam/{pairID}.bam.bai
+            """.format(threads=threads, pairDir=pairDir, resultsDir=resultsDir, pairID=pairID, remove=remove, tmp=tmp)
             print(p)
             os.system(p)
 

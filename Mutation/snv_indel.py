@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.17"
+__Version__ = "1.00"
 __Author__ = "pzweuj"
-__Date__ = "20210416"
+__Date__ = "20210420"
 
 import os
 import sys
@@ -85,7 +85,7 @@ class SNV_Indel(object):
                     --native-pair-hmm-threads {threads} \\
                     -L {bedFile} \\
                     -A Coverage -A GenotypeSummaries \\
-                    --genotype-germline-sites true \\
+                    --genotype-germline-sites false \\
                     --max-reads-per-alignment-start 0
                 cp {tmpDir}/{sampleID}.m2.vcf {resultsDir}/vcf/{sampleID}.vcf
             """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile)
@@ -104,7 +104,7 @@ class SNV_Indel(object):
                     --native-pair-hmm-threads {threads} \\
                     -L {bedFile} \\
                     -A Coverage -A GenotypeSummaries \\
-                    --genotype-germline-sites true \\
+                    --genotype-germline-sites false \\
                     --max-reads-per-alignment-start 0
                 cp {tmpDir}/{sampleID}_{pairID}.m2.vcf {resultsDir}/vcf/{sampleID}_{pairID}.vcf
             """.format(tmpDir=tmpDir, bedFile=bedFile, pon=pon, reference=reference, resultsDir=resultsDir, sampleID=sampleID, gnomad=gnomad, threads=threads, bamFile=bamFile, pairFile=pairFile, pairID=pairID)
@@ -137,12 +137,75 @@ class SNV_Indel(object):
         print(cmd)
         os.system(cmd)
 
-    def vardict(self):
-        pass
-
-
+    # VarScan2
+    # http://varscan.sourceforge.net/
     def varscan2(self):
-        pass
+        reference = self.reference
+        resultsDir = self.output
+        sampleID = self.sample
+        pairID = self.pair
+        bedFile = self.bed
+        threads = self.threads
+        bedFile = self.bed
+        MAF = self.MAF
+        DP = self.filtDP
+        minCov = str(int(int(DP) * float(MAF)))
+
+        tmpDir = resultsDir + "/tempFile/varscan2_" + sampleID
+        mkdir(tmpDir)
+        vs = "/home/bioinfo/ubuntu/software/VarScan.v2.3.9/VarScan.v2.3.9.jar"
+        
+        if pairID == None:
+            print("varscan2仅适用于配对分析，请指定配对样本并重新运行")
+            exit()
+
+        cmd = """
+            samtools mpileup -B -f {reference} -q 15 -d 10000 \\
+                {resultsDir}/bam/{pairID}.bam {resultsDir}/bam/{sampleID}.bam \\
+                | java -jar {vs} somatic -mpileup {tmpDir}/{sampleID} \\
+                --min-coverage-normal {minCov} --min-coverage-tumor {minCov} \\
+                --min-var-freq {MAF} --strand-filter 1 --output-vcf
+            bcftools reheader -f {reference}.fai {tmpDir}/{sampleID}.indel.vcf -o {tmpDir}/{sampleID}.indel.fix.vcf
+            bcftools reheader -f {reference}.fai {tmpDir}/{sampleID}.snp.vcf -o {tmpDir}/{sampleID}.snp.fix.vcf
+        """.format(reference=reference, resultsDir=resultsDir, pairID=pairID, sampleID=sampleID, vs=vs, tmpDir=tmpDir, minCov=minCov, MAF=MAF)
+        print(cmd)
+        os.system(cmd)
+
+    def varscan_filter(self):
+        reference = self.reference
+        resultsDir = self.output
+        sampleID = self.sample
+        pairID = self.pair
+        filtDP = self.filtDP
+        MAF = self.filtQUAL    
+
+        tmpDir = resultsDir + "/tempFile/varscan2_" + sampleID
+        outputFile = tmpDir + "/" + sampleID + ".merge.vcf"
+        output = open(outputFile, "w")
+        indel = open(tmpDir + "/" + sampleID + ".indel.fix.vcf", "r")
+        snp = open(tmpDir + "/" + sampleID + ".snp.fix.vcf", "r")
+
+        for i in indel:
+            if "NORMAL\tTUMOR" in i:
+                i = i.replace("NORMAL\tTUMOR", pairID + "\t" + sampleID)
+            output.write(i)
+        indel.close()
+
+        for s in snp:
+            if not s.startswith("#"):
+                output.write(s)
+        snp.close()
+        output.close()
+
+        tmp = tmpDir + "/tmp"
+        mkdir(tmp)
+        cmd = """
+            bcftools sort {outputFile} -O v -o {tmpDir}/{sampleID}.vcf -T {tmp}
+            cp {tmpDir}/{sampleID}.vcf {resultsDir}/vcf/{sampleID}_{pairID}.vcf
+        """.format(resultsDir=resultsDir, outputFile=outputFile, tmpDir=tmpDir, sampleID=sampleID, pairID=pairID, tmp=tmp)
+        print(cmd)
+        os.system(cmd)
+
 
     # pisces tumor only
     # https://github.com/Illumina/Pisces
@@ -384,3 +447,5 @@ class SNV_Indel(object):
         
         print(cmd)
         os.system(cmd)
+
+# end

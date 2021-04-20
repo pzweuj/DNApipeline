@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "1.00"
+__Version__ = "1.01"
 __Author__ = "pzweuj"
-__Date__ = "20210322"
+__Date__ = "20210420"
 
 
 """
@@ -128,7 +128,7 @@ def main(runInfo):
 
     # 变异检测
     ## SNV indel
-    ## [gatk_m2, gatk_haplotypercaller, freebayes, pisces]
+    ## [gatk_m2, varscan2, pisces, freebayes, gatk_haplotypercaller]
     if SnvIndel_ == None:
         print("根据设定不进行SNV/indel检测")
     else:
@@ -148,6 +148,9 @@ def main(runInfo):
             SnvIndel_process.gatk_haplotypecaller()
         elif SnvIndel_process.runApp == "pisces":
             SnvIndel_process.pisces()
+        elif SnvIndel_process.runApp == "varscan" or "varscan2":
+            SnvIndel_process.varscan2()
+            SnvIndel_process.varscan_filter()
         else:
             print("未找到此变异检测方法")
         print("全局过滤")
@@ -262,28 +265,32 @@ def main(runInfo):
         mergeResultsToExcel(output, pair)
 
     # 删除中间文件
-    if runningInformation["setting"]["REMOVE_TMP"]:
-        tmpDirReady = os.listdir(output + "/tempFile")
-        if len(tmpDirReady) != 0:
-            for t in tmpDirReady:
-                if sample in t:
-                    tmpDirReadyToRemove = output + "/tempFile/" + t
-                    if os.path.isdir(tmpDirReadyToRemove):
-                        shutil.rmtree(tmpDirReadyToRemove)
-        else:
-            shutil.rmtree(output + "/tempFile")
-
-    if pair != None:
+    if os.path.exists(output + "/tempFile"):
         if runningInformation["setting"]["REMOVE_TMP"]:
             tmpDirReady = os.listdir(output + "/tempFile")
             if len(tmpDirReady) != 0:
                 for t in tmpDirReady:
-                    if pair in t:
+                    if sample in t:
                         tmpDirReadyToRemove = output + "/tempFile/" + t
                         if os.path.isdir(tmpDirReadyToRemove):
-                            shutil.rmtree(tmpDirReadyToRemove)
-            else:
+                            shutil.rmtree(tmpDirReadyToRemove)        
+            tmpDirReady = os.listdir(output + "/tempFile")
+            if len(tmpDirReady) == 0:
                 shutil.rmtree(output + "/tempFile")
+
+    if os.path.exists(output + "/tempFile"):
+        if pair != None:
+            if runningInformation["setting"]["REMOVE_TMP"]:
+                tmpDirReady = os.listdir(output + "/tempFile")
+                if len(tmpDirReady) != 0:
+                    for t in tmpDirReady:
+                        if pair in t:
+                            tmpDirReadyToRemove = output + "/tempFile/" + t
+                            if os.path.isdir(tmpDirReadyToRemove):
+                                shutil.rmtree(tmpDirReadyToRemove)
+                tmpDirReady = os.listdir(output + "/tempFile")
+                if len(tmpDirReady) != 0:
+                    shutil.rmtree(output + "/tempFile")
 
 
     # 报告
@@ -329,7 +336,7 @@ if __name__ == "__main__":
         usage="python3 DNA.py -i <Config Yaml File>")
     group = parser.add_mutually_exclusive_group()
     parser.add_argument("-v", "--version", action="version",
-        version="Version 1.0 20210322")
+        version="Version 1.01 20210420")
     parser.add_argument("-i", "--input", type=str,
         help="输入配置文件")
 

@@ -223,8 +223,13 @@ class Annotation(object):
                     format_dict[f[0]] = f[1]
 
                 lineDict["DP"] = format_dict["DP"]
-                lineDict["Ref_AD"] = format_dict["AD"].split(",")[0]
-                lineDict["Alt_AD"] = format_dict["AD"].split(",")[1]
+                lineDict["Alt_AD"] = format_dict["AD"]
+                if not "," in lineDict["Alt_AD"]:
+                    lineDict["Alt_AD"] = lineDict["Alt_AD"]
+                else:
+                    lineDict["Alt_AD"] = lineDict["Alt_AD"].split(",")[1]
+                lineDict["Ref_AD"] = str(int(lineDict["DP"]) - int(lineDict["Alt_AD"]))
+
                 try:
                     AF = "%.2f" % ((float(lineDict["Alt_AD"]) / float(lineDict["DP"])) * 100) + "%"
                 except Exception:

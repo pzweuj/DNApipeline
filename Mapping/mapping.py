@@ -89,13 +89,13 @@ class Mapping(object):
                     {reference} \\
                     {resultsDir}/cleandata/{pairID}.clean_R1.fastq.gz \\
                     {resultsDir}/cleandata/{pairID}.clean_R2.fastq.gz \\
-                    | sambamba view -f bam -t {threads} -S /dev/stdin > {tmpDir}/{pairID}.bam
-                sambamba sort {tmpDir}/{pairID}.bam -t {threads} -o {tmpDir}/{pairID}.sort.bam --tmpdir {tmp} -p
-                rm {tmpDir}/{pairID}.bam
+                    | sambamba view -f bam -t {threads} -S /dev/stdin > {pairDir}/{pairID}.bam
+                sambamba sort {pairDir}/{pairID}.bam -t {threads} -o {pairDir}/{pairID}.sort.bam --tmpdir {tmp} -p
+                rm {pairDir}/{pairID}.bam
                 cp {pairDir}/{pairID}.sort.bam {resultsDir}/bam/{pairID}.bam
                 cp {pairDir}/{pairID}.sort.bam.bai {resultsDir}/bam/{pairID}.bam.bai
                 rm -rf {tmp}
-            """.format(tmpDir=tmpDir, threads=threads, pairID=pairID, reference=reference, resultsDir=resultsDir, tmp=tmp)
+            """.format(pairDir=pairDir, threads=threads, pairID=pairID, reference=reference, resultsDir=resultsDir, tmp=tmp)
             print(p)
             os.system(p)
 

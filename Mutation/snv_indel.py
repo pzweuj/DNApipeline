@@ -186,13 +186,25 @@ class SNV_Indel(object):
         snp = open(tmpDir + "/" + sampleID + ".snp.fix.vcf", "r")
 
         for i in indel:
-            if "NORMAL\tTUMOR" in i:
-                i = i.replace("NORMAL\tTUMOR", pairID + "\t" + sampleID)
+            if i.startswith("#"):
+                if "NORMAL\tTUMOR" in i:
+                    i = i.replace("NORMAL\tTUMOR", sampleID + "\t" + pairID)
+            else:
+                ii = i.replace("\n", "").split("\t")
+                li = ii[0:9]
+                li.append(ii[10])
+                li.append(ii[9])
+                i = "\t".join(li) + "\n"
             output.write(i)
         indel.close()
 
         for s in snp:
             if not s.startswith("#"):
+                ss = s.replace("\n", "").split("\t")
+                si = ss[0:9]
+                si.append(ss[10])
+                si.append(ss[9])
+                s = "\t".join(si) + "\n"
                 output.write(s)
         snp.close()
         output.close()

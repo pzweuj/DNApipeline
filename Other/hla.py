@@ -164,8 +164,8 @@ class HLA(object):
                 -t {threads} \\
                 -d {hla_db} -g HLA-C > {tmpDir}/{sampleID}.HLA-C.txt
             cat {tmpDir}/{sampleID}.HLA-A.txt {tmpDir}/{sampleID}.HLA-B.txt {tmpDir}/{sampleID}.HLA-C.txt \\
-                > {tmpDir}/{sampleID}.hlahd.txt
-            cp {tmpDir}/{sampleID}.hlahd.txt {resultsDir}/HLA/
+                > {tmpDir}/{sampleID}.hlascan.txt
+            cp {tmpDir}/{sampleID}.hlascan.txt {resultsDir}/HLA/
         """.format(hla_scan=hla_scan, hla_db=hla_db, tmpDir=tmpDir, sampleID=sampleID, threads=threads, resultsDir=resultsDir)
         print(cmd)
         os.system(cmd)

@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.12"
+__Version__ = "0.13"
 __Author__ = "pzweuj"
-__Date__ = "20210409"
+__Date__ = "20210421"
 
 import os
 import sys
@@ -15,6 +15,17 @@ from Other.function import mkdir
 class TMB(object):
     """
     TMB计算模块
+    目前过滤选择：
+        ## 以下可调整脚本基础过滤条件下的内容
+        一、过滤人群频率≥0.01的突变
+        二、过滤cosmic中出现次数≥1的突变
+        三、过滤突变丰度＜0.02的突变
+        
+        ## 以下可调整脚本过滤条件下的内容
+        四、过滤dbsnp中的突变
+        五、过滤同义突变
+        六、仅保留exonic区域
+        七、过滤Jax-Ckb，Civic，OncoKB中的热点
     """
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
@@ -40,15 +51,17 @@ class TMB(object):
         tmpDir = resultsDir + "/tempFile/TMB_" + sampleID
         mkdir(tmpDir)
 
+        ######## 基础过滤条件 #########
         polyDB_filter = 0.01
-        cosmic_filter = 5
-        AF_filter = 0.05
+        cosmic_filter = 1
+        AF_filter = 0.02
 
         annovarFile = open(resultsDir + "/annotation/" + sampleID + ".Anno.txt", "r")
         resultsFile = open(tmpDir + "/" + sampleID + ".tmb.txt", "w")
         resultsFile.write("# " + sampleID + "\n")
         resultsFile.write("panelSize\t" + str(panelSize) + "\n")
         resultsFile.write("过滤条件：\n")
+        resultsFile.write("过滤热点、dbsnp、同义突变\n")
         resultsFile.write("人群频率(需小于此值)\t" + str(polyDB_filter) + "\n")
         resultsFile.write("cosmic出现次数(需小于此值)\t" + str(cosmic_filter) + "\n")
         resultsFile.write("突变丰度(需大于此值)\t" + str(AF_filter) + "\n")
@@ -61,6 +74,8 @@ class TMB(object):
                 lines = line.replace("\n", "").split("\t")
                 func = lines[15]
                 cosmic = lines[31]
+                dbsnp = lines[17]
+                consequence = lines[11]
                 polyDB = lines[18]
                 polyDB_eas = lines[22]
                 Jax = lines[28]
@@ -90,8 +105,8 @@ class TMB(object):
                 else:
                     polyDB_eas = float(polyDB_eas)
                 
-                # 过滤
-                # 滤去AF小于等于5%的点
+                ###### 过滤条件 ########
+                # 滤去AF小于等于2%的点
                 if AF <= AF_filter:
                     continue
 
@@ -105,23 +120,31 @@ class TMB(object):
                 if cosmic_count >= cosmic_filter:
                     continue
 
-                # 仅保留exonic与splicing
+                # 过滤dbsnp
+                if dbsnp != "-":
+                    continue
+
+                # 过滤同义突变
+                if consequence == "Synonymous_substitution":
+                    continue
+
+                # 仅保留exonic
                 if "ncRNA" in func:
-                	continue
-                elif "exonic" in func:
-                    pass
+                    continue
                 elif "splicing" in func:
+                    continue
+                elif "exonic" in func:
                     pass
                 else:
                     continue
 
                 # 过滤热点
                 if Jax != "-":
-                	continue
+                    continue
                 if Civic != "-":
-                	continue
+                    continue
                 if Onco != "-":
-                	continue
+                    continue
 
                 # 通过过滤
                 print(line)

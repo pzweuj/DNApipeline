@@ -190,7 +190,9 @@ class Annotation(object):
 
                 # 处理Consequence
                 # print(s[1])
-                if "missense" in s[1]:
+                if lineDict["Func.refGene"] == "exonic" and lineDict["Type"] == "Complex":
+                    lineDict["Consequence"] = "Complex_mutation"
+                elif "missense" in s[1]:
                     lineDict["Consequence"] = "Missense_substitution"
                 elif "splice" in s[1]:
                     lineDict["Consequence"] = "Splice_Site_mutation"
@@ -209,8 +211,6 @@ class Annotation(object):
                         lineDict["Consequence"] = "Frameshift_variant"
                 elif "stop_gained" in s[1]:
                     lineDict["Consequence"] = "Nonsense_substitution"
-                elif lineDict["Func.refGene"] == "exonic" and lineDict["Type"] == "Complex":
-                    lineDict["Consequence"] = "Complex_mutation"
                 else:
                     lineDict["Consequence"] = "Other"
 

@@ -134,7 +134,10 @@ def mergeResultsToExcel(resultsDir, sampleID):
                     write_excel(ws_TMB, content)
 
     wb.remove(wb["Sheet"])
-    wb.save(resultsDir + "/results/" + sampleID + ".xlsx")
+    try:
+        wb.save(resultsDir + "/results/" + sampleID + ".xlsx")
+    except:
+        print("数据表不足保存")
     print(sampleID + " 结果已汇总到excel表格中： " + resultsDir + "/results/" + sampleID + ".xlsx")
 
 

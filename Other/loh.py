@@ -1,12 +1,14 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.02"
+__Version__ = "0.03"
 __Author__ = "pzweuj"
-__Date__ = "20210421"
+__Date__ = "20210425"
 
 import os
 import sys
+import math
+import shutil
 
 FUN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(FUN_DIR)
@@ -16,11 +18,13 @@ from Other.function import mkdir
 class LOH(object):
     """
     LOH检测模块，用于检测HLA区域杂合性缺失
+    ！！！！未验证！！！！
     """
 
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
         self.sample = runningInfo["sample"]
+        self.pair = runningInfo["pair"]
         self.rawdata = runningInfo["rawdata"]
         self.output = runningInfo["output"]
 
@@ -30,6 +34,7 @@ class LOH(object):
         mkdir(self.output)
         mkdir(self.output + "/tempFile")
         mkdir(self.output + "/HLA")
+        mkdir(self.output + "/LOH")
 
 
     # 提取HLA结果
@@ -142,9 +147,9 @@ class LOH(object):
         HLA-C    hla_c_01_02    hla_c_12_02
         """
 
-        output1 = "HLA-A\thla_a_" + HLAClassI["A1"].split("*")[1].replace(":", "_") + "\thla_a_" + HLAClassI["A2"].split("*")[1].replace(":", "_")
-        output2 = "HLA-B\thla_b_" + HLAClassI["B1"].split("*")[1].replace(":", "_") + "\thla_b_" + HLAClassI["B2"].split("*")[1].replace(":", "_")
-        output3 = "HLA-C\thla_c_" + HLAClassI["C1"].split("*")[1].replace(":", "_") + "\thla_c_" + HLAClassI["C2"].split("*")[1].replace(":", "_")
+        output1 = "hla_a_" + HLAClassI["A1"].split("*")[1].replace(":", "_") + "\nhla_a_" + HLAClassI["A2"].split("*")[1].replace(":", "_")
+        output2 = "hla_b_" + HLAClassI["B1"].split("*")[1].replace(":", "_") + "\nhla_b_" + HLAClassI["B2"].split("*")[1].replace(":", "_")
+        output3 = "hla_c_" + HLAClassI["C1"].split("*")[1].replace(":", "_") + "\nhla_c_" + HLAClassI["C2"].split("*")[1].replace(":", "_")
 
         print(output1)
         print(output2)
@@ -156,22 +161,120 @@ class LOH(object):
         results.write(output3 + "\n")
         results.close()
 
-
-    # LOHHLA
-    # https://github.com/slagtermaarten/LOHHLA
-    # https://bitbucket.org/mcgranahanlab/lohhla/src/master/
-    # 与原版对比增加了hg38支持以及修正部分bug ---> slagtermaarten
-    # 将picard部分更新为新picard ---> pzw
-    # 参考https://github.com/pyc1216/hlaloh-pipeline
-    def lohhla(self):
-        self.extractHLAResults()
-        pass
-
-
-
+    # 评估肿瘤倍性与肿瘤纯度
     # PyLOH
     # https://github.com/uci-cbcl/PyLOH
     def pyloh(self):
-        self.extractHLAResults()
         pass
+
+    # THetA
+    # https://github.com/raphael-group/THetA
+    def theta(self):
+        pass
+
+    # PureCN
+    # https://github.com/lima1/PureCN
+    def purecn(self):
+        pass
+
+
+    # 暂时先模拟一个用着，肿瘤纯度应该可以直接从病理获得，比通过软件评估准确
+    def TempPurityPloidy(self):
+        sampleID = self.sample
+        pairID = self.pair
+        resultsDir = self.output
+        
+        tmpDir = resultsDir + "/tempFile/LOH_" + sampleID
+        mkdir(tmpDir)
+
+        solution = open(tmpDir + "/" + sampleID + ".solutions.txt", "w")
+        solution.write("Ploidy\ttumorPurity\ttumorPloidy\n")
+        solution.write(sampleID + "\t2\t0.8\t2\n")
+        solution.close()
+
+
+    # LOHHLA
+    # https://github.com/slagtermaarten/LOHHLA
+    # https://bitbucket.org/mcgranahanlab/lohhla
+    # 与原版对比增加了hg38支持以及修正部分bug ---> slagtermaarten
+    # 将picard部分更新为picard 2.25.2 ---> pzw
+    def lohhla(self):
+        sampleID = self.sample
+        pairID = self.pair
+        resultsDir = self.output
+
+        tmpDir = resultsDir + "/tempFile/LOH_" + sampleID
+        mkdir(tmpDir)
+
+        # 对HLA结果进行提取
+        self.extractHLAResults()
+        # 肿瘤纯度与倍性评估
+        self.TempPurityPloidy()
+
+        # HLAfasta来源
+        # https://github.com/jason-weirather/hla-polysolver/blob/master/data/abc_complete.fasta
+        HLAloc = "/home/bioinfo/ubuntu/software/LOHHLA"
+        HLAfasta = "/home/bioinfo/ubuntu/software/LOHHLA/data/abc_complete.fasta"
+        HLAexon = "/home/bioinfo/ubuntu/software/LOHHLA/data/hla.dat"
+        cmd = """
+            Rscript {HLAloc}/LOHHLAscript.R \\
+                --patientId {sampleID} \\
+                --outputDir {tmpDir} \\
+                --normalBAMfile {resultsDir}/bam/{pairID}.bam \\
+                --tumorBAMfile {resultsDir}/bam/{sampleID}.bam \\
+                --BAMDir {resultsDir}/bam \\
+                --hlaPath {tmpDir}/{sampleID}.hlas \\
+                --HLAfastaLoc {HLAfasta} \\
+                --CopyNumLoc {tmpDir}/{sampleID}.solutions.txt \\
+                --mappingStep TRUE \\
+                --minCoverageFilter 10 \\
+                --fishingStep TRUE \\
+                --cleanUp TRUE \\
+                --gatkDir /home/bioinfo/ubuntu/software/picard \\
+                --novoDir /home/bioinfo/ubuntu/software/novocraft \\
+                --LOHHLA_loc {HLAloc} \\
+                --HLAexonLoc {HLAexon}
+        """.format(HLAloc=HLAloc, sampleID=sampleID, tmpDir=tmpDir, resultsDir=resultsDir, pairID=pairID, HLAfasta=HLAfasta, HLAexon=HLAexon)
+        print(cmd)
+        os.system(cmd)
+
+        # results
+        f_list = os.listdir(tmpDir)
+        lohfile = "-"
+        for f in f_list:
+            if "DNA.HLAlossPrediction_" in f:
+                lohfile = f
+        if lohfile == "-":
+            print("未找到结果")
+            exit()
+        else:
+            lohf = open(tmpDir + "/" + lohfile, "r")
+            loh_results = open(tmpDir + "/" + sampleID + ".loh.txt", "w")
+            loh_results.write("HLAType\tHLACopyNumWithBAFBin\tpval\tLOHstat\n")
+            for line in lohf:
+                if not line.startswith("message"):
+                    lines = line.split("\t")
+                    HLAtype = lines[1][0:5]
+                    if lines[0].startswith("homozygous_alleles"):
+                        HLAtype2copyNumWithBAFBin = "-"
+                        pVal = "-"
+                        LOHstat = "FALSE"
+                    else:
+                        HLAtype2copyNumWithBAFBin = lines[28]
+                        pVal = lines[33]
+                        if pVal == "NA":
+                            LOHstat = "-"
+                        # 参考 https://github.com/pyc1216/hlaloh-pipeline/blob/master/scripts/get_result.py 获得回报结果
+                        elif float(pVal) < 0.01 and float(HLAtype2copyNumWithBAFBin) < math.log2(0.5):
+                            LOHstat = "TRUE"
+                        else:
+                            LOHstat = "FALSE"
+                    loh_results.write(HLAtype + "\t" + HLAtype2copyNumWithBAFBin + "\t" + pVal + "\t" + LOHstat + "\n")
+            loh_results.close()
+            lohf.close()
+        shutil.copy(tmpDir + "/" + sampleID + ".loh.txt", resultsDir + "/LOH/" + sampleID + ".loh.txt")
+        print("LOH分析完成")
+
+
+
 

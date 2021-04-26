@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "1.01"
+__Version__ = "1.02"
 __Author__ = "pzweuj"
-__Date__ = "20210420"
+__Date__ = "20210425"
 
 
 """
@@ -28,6 +28,7 @@ from Annotation.anno import Annotation
 from Other.msi import MSI
 from Other.hla import HLA
 from Other.tmb import TMB
+from Other.loh import LOH
 
 def main(runInfo):
     # 基本信息获取
@@ -80,6 +81,7 @@ def main(runInfo):
     MSI_ = process["Other"]["MSI"]
     HLA_ = process["Other"]["HLA"]
     TMB_ = process["Other"]["TMB"]
+    LOH_ = process["Other"]["LOH"]
 
     # 质控
     # [fastp]
@@ -258,6 +260,18 @@ def main(runInfo):
         print("进行TMB计算 Panel大小设定："  + str(TMB_process.panelSize))
         print("检测后文件输出目录： " + TMB_process.output + "/TMB")
         TMB_process.tmb_counter()
+
+    ## HLA LOH
+    ### 该模块依赖于HLA分型结果，因此必须先完成HLA分型分析
+    if LOH_ == None:
+        print("根据设定不进行LOH分析")
+    elif LOH_ == False:
+        print("根据设定不进行LOH分析")
+    else:
+        LOH_process = LOH(runningInformation)
+        print("使用 lohhla 进行LOH分析")
+        print("检测后文件输出目录：" + LOH_process.output + "/LOH")
+        LOH_process.lohhla()
 
     # 合并结果到excel表中
     mergeResultsToExcel(output, sample)

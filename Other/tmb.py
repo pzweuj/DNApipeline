@@ -19,13 +19,17 @@ class TMB(object):
         ## 以下可调整脚本基础过滤条件下的内容
         一、过滤人群频率≥0.01的突变
         二、过滤cosmic中出现次数≥1的突变
-        三、过滤突变丰度＜0.02的突变
+        三、过滤突变丰度＜0.05的突变
         
         ## 以下可调整脚本过滤条件下的内容
         四、过滤dbsnp中的突变
-        五、过滤同义突变
+        五、保留同义突变
+        六、过滤无义突变
         六、仅保留exonic区域
         七、过滤Jax-Ckb，Civic，OncoKB中的热点
+
+    未使用SGZ方法：
+    https://github.com/jsunfmi/SGZ
     """
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
@@ -54,7 +58,7 @@ class TMB(object):
         ######## 基础过滤条件 #########
         polyDB_filter = 0.01
         cosmic_filter = 1
-        AF_filter = 0.02
+        AF_filter = 0.05
 
         annovarFile = open(resultsDir + "/annotation/" + sampleID + ".Anno.txt", "r")
         resultsFile = open(tmpDir + "/" + sampleID + ".tmb.txt", "w")
@@ -106,7 +110,7 @@ class TMB(object):
                     polyDB_eas = float(polyDB_eas)
                 
                 ###### 过滤条件 ########
-                # 滤去AF小于等于2%的点
+                # 滤去AF小于等于5%的点
                 if AF <= AF_filter:
                     continue
 
@@ -126,7 +130,11 @@ class TMB(object):
 
                 # 过滤同义突变
                 if consequence == "Synonymous_substitution":
-                    continue
+                    pass
+
+                # 过滤无义突变
+                if consequence == "Nonsense_substitution":
+                    continue                
 
                 # 仅保留exonic
                 if "ncRNA" in func:

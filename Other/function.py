@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.20"
+__Version__ = "0.21"
 __Author__ = "pzweuj"
-__Date__ = "20210416"
+__Date__ = "20210428"
 
 
 import os
@@ -132,6 +132,25 @@ def mergeResultsToExcel(resultsDir, sampleID):
                     content = read_txt(resultsDir + "/TMB/" + t)
                     ws_TMB = wb.create_sheet(t.replace(".txt", "").replace(sampleID + ".", ""))
                     write_excel(ws_TMB, content)
+
+    if "LOH" in dir_list:
+        loh = os.listdir(resultsDir + "/LOH")
+        if len(loh) != 0:
+            for l in loh:
+                if sampleID in l:
+                    content = read_txt(resultsDir + "/LOH/" + l)
+                    ws_LOH = wb.create_sheet(t.replace(".txt", "").replace(sampleID + ".", ""))
+                    write_excel(ws_LOH, content)
+
+    if "Neoantigen" in dir_list:
+        neo = os.listdir(resultsDir + "/Neoantigen")
+        if len(neo) != 0:
+            for n in neo:
+                if sampleID in n:
+                    content = read_txt(resultsDir + "/Neoantigen/" + n)
+                    ws_Neo = wb.create_sheet(n.replace(".filter.txt", "").replace(sampleID + ".", ""))
+                    write_excel(ws_Neo, content)
+
 
     wb.remove(wb["Sheet"])
     try:

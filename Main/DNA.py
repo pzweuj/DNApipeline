@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "1.02"
+__Version__ = "1.03"
 __Author__ = "pzweuj"
-__Date__ = "20210425"
+__Date__ = "20210428"
 
 
 """
@@ -29,6 +29,7 @@ from Other.msi import MSI
 from Other.hla import HLA
 from Other.tmb import TMB
 from Other.loh import LOH
+from Other.neoantigen import Neoantigen
 
 def main(runInfo):
     # 基本信息获取
@@ -82,6 +83,7 @@ def main(runInfo):
     HLA_ = process["Other"]["HLA"]
     TMB_ = process["Other"]["TMB"]
     LOH_ = process["Other"]["LOH"]
+    Neo_ = process["Other"]["Neoantigen"]
 
     # 质控
     # [fastp]
@@ -273,6 +275,23 @@ def main(runInfo):
         print("检测后文件输出目录：" + LOH_process.output + "/LOH")
         LOH_process.lohhla()
 
+    # Neoantigen 新抗原预测
+    ## 目前仅对MHC I进行新抗原预测
+    ## 该模块依赖于vcf结果以及HLA分型结果
+    ## 其中vcf结果中，肿瘤结果需位于Sample第一列（即FORMAT列后的第一列）
+    ## 使用此流程获得的过滤后vcf均已适配
+    ## Neoantigen分析速度很慢（无线程参数提供使用），如没必要不建议进行
+    if Neo_ == None:
+        print("根据设定不进行Neoantigen分析")
+    elif Neo_ == False:
+        print("根据设定不进行Neoantigen分析")
+    else:
+        Neo_process = Neoantigen(runningInformation)
+        print("使用 NetMHCpan 进行Neoantigen分析")
+        print("检测后文件输出目录：" + Neo_process.output + "/Neoantigen")
+        Neo_process.neopredpipe()
+        Neo_process.neopredpipe_filter()
+
     # 合并结果到excel表中
     mergeResultsToExcel(output, sample)
     if pair != None:
@@ -305,7 +324,6 @@ def main(runInfo):
                 tmpDirReady = os.listdir(output + "/tempFile")
                 if len(tmpDirReady) != 0:
                     shutil.rmtree(output + "/tempFile")
-
 
     # 报告
     if runningInformation["process"]["Report"]:

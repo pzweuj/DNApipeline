@@ -18,6 +18,7 @@ from Other.function import mkdir
 class LOH(object):
     """
     LOH检测模块，用于检测HLA区域杂合性缺失
+    需求HLA-A、HLA-B、HLA-C三个class I基因的分型结果，因此仅能在大panel或WES等项目中使用
     ！！！！未验证！！！！
     """
 
@@ -146,10 +147,23 @@ class LOH(object):
         HLA-B    hla_b_15_01    hla_b_52_01
         HLA-C    hla_c_01_02    hla_c_12_02
         """
+        try:
+            output1 = "hla_a_" + HLAClassI["A1"].split("*")[1].replace(":", "_") + "\nhla_a_" + HLAClassI["A2"].split("*")[1].replace(":", "_")
+        except:
+            output1 = "\n"
+            print("无法分型HLA-A")
+        
+        try:
+            output2 = "hla_b_" + HLAClassI["B1"].split("*")[1].replace(":", "_") + "\nhla_b_" + HLAClassI["B2"].split("*")[1].replace(":", "_")
+        except:
+            output2 = "\n"
+            print("无法分型HLA-B")
 
-        output1 = "hla_a_" + HLAClassI["A1"].split("*")[1].replace(":", "_") + "\nhla_a_" + HLAClassI["A2"].split("*")[1].replace(":", "_")
-        output2 = "hla_b_" + HLAClassI["B1"].split("*")[1].replace(":", "_") + "\nhla_b_" + HLAClassI["B2"].split("*")[1].replace(":", "_")
-        output3 = "hla_c_" + HLAClassI["C1"].split("*")[1].replace(":", "_") + "\nhla_c_" + HLAClassI["C2"].split("*")[1].replace(":", "_")
+        try:
+            output3 = "hla_c_" + HLAClassI["C1"].split("*")[1].replace(":", "_") + "\nhla_c_" + HLAClassI["C2"].split("*")[1].replace(":", "_")
+        except:
+            output3 = "\n"
+            print("无法分型HLA-C")
 
         print(output1)
         print(output2)
@@ -160,6 +174,10 @@ class LOH(object):
         results.write(output2 + "\n")
         results.write(output3 + "\n")
         results.close()
+        cmd = """
+            sed -i '/^$/d' {tmpDir}/{sampleID}.hlas
+        """.format(tmpDir=tmpDir, sampleID=sampleID)
+        os.system(cmd)
 
     # 评估肿瘤倍性与肿瘤纯度
     # PyLOH

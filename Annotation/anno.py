@@ -33,7 +33,6 @@ class Annotation(object):
         mkdir(self.output + "/tempFile")
         mkdir(self.output + "/annotation")
 
-
     # snpEff
     # https://pcingola.github.io/SnpEff/
     def snpeff(self):
@@ -191,7 +190,16 @@ class Annotation(object):
                 # 处理Consequence
                 # print(s[1])
                 if lineDict["Func.refGene"] == "exonic" and lineDict["Type"] == "Complex":
-                    lineDict["Consequence"] = "Complex_mutation"
+                    if "_" in lineDict["pHGVS"]:
+                        lineDict["Consequence"] = "Complex_mutation"
+                    elif "stop_gained" in s[1]:
+                        lineDict["Consequence"] = "Nonsense_substitution"
+                    elif "missense" in s[1]:
+                        lineDict["Consequence"] = "Missense_substitution"
+                    elif "synonymous" in s[1]:
+                        lineDict["Consequence"] = "Synonymous_substitution"
+                    else:
+                        lineDict["Consequence"] = "Complex_mutation"
                 elif "missense" in s[1]:
                     lineDict["Consequence"] = "Missense_substitution"
                 elif "splice" in s[1]:

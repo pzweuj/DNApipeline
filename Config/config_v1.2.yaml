@@ -7,24 +7,24 @@
 project: "Chem"                                                 # 定义项目
 rawdata: "/home/bioinfo/ubuntu/project/Test_20210319/rawdata"   # 原始数据存放文件夹
 output: "/home/bioinfo/ubuntu/project/Test_20210319/output"     # 结果输出文件夹
-sample:                                          # 样本编号
-pair:                                                           # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
+sample: "tumor"                                                 # 样本编号
+pair: "normal"                                                  # 配对样本编号，当填写时，使用配对样本分析模式(程序未完成)
 
 ####### 临床/收样信息 #########
 clinical:
-  sampleID: 
-  name: 
-  gender: 
-  age: 
-  send: 
-  office: 
-  doctor: 
-  type: 
-  diagnosis: 
-  orign_id: 
-  collect_date: 
-  p_id: 
-  report_date: 
+  sampleID:                                                     # 样本编号
+  name:                                                         # 受检者姓名
+  gender:                                                       # 受检者性别
+  age:                                                          # 受检者年龄
+  send:                                                         # 送检单位
+  office:                                                       # 送检科室
+  doctor:                                                       # 送检医生
+  type:                                                         # 样本类型
+  diagnosis:                                                    # 临床诊断
+  orign_id:                                                     # 原病理号
+  collect_date:                                                 # 样本接收日期
+  p_id:                                                         # 检测号
+  report_date:                                                  # 报告日期
 
 ######## 项目运行参数 ##########
 process:                                               # 流程设定值，不运行则不填写
@@ -33,56 +33,55 @@ process:                                               # 流程设定值，不�
   Mapping:  "bwa_mem"                                  # 比对程序
   Mutation:                                            # 分析流程
     SNV_indel:  "gatk_m2"                              # 变异检测
-    CNV:                                               # CNV检测
-    SV:  "manta"                                       # SV检测
-  Annotation: "annovar"                                # 注释
+    CNV: "cnvkit"                                      # CNV检测
+    SV:  true                                          # SV检测
+  Annotation: true                                     # 注释
   Other:                                               # 其他分析项目
-    HLA:                                               # HLA分型分析
-    MSI:                                               # MSI分析
-    TMB:                                               # TMB分析
-    LOH:                                               # LOH分析
-    Neoantigen:                                        # MHC I 新抗原预测
+    HLA: "optitype"                                    # HLA分型分析
+    MSI: "msisensorpro"                                # MSI分析
+    TMB: true                                          # TMB分析
+    LOH: true                                          # LOH分析
+    Neoantigen: true                                   # MHC I 新抗原预测
   Report: true                                         # 是否生成报告
 
 
 ########## 模块设定 ###########
 setting:
   QC:
-    UMI_loc: 
-    UMI_len: 
-    UMI_structure:
+    UMI_loc:                                           # 设定时，使用UMI进行去重，可选[index1,index2,read1,read2,per_index,per_read]
+    UMI_len:                                           # 设定UMI长度
   Mapping:
-    databases: "/home/bioinfo/ubuntu/database/hg19"
-    reference: "/home/bioinfo/ubuntu/database/hg19/ucsc.hg19.fasta"
-    markDups: true
-    removeDups: false
-    recalibrate: true
-    mills: "Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
-    indel_1000g: "1000G_phase1.indels.hg19.sites.vcf"
-    snp_1000g: "dbsnp_138.hg19.vcf"
+    databases: "/home/bioinfo/ubuntu/database/hg19"                     # 参考数据库目录
+    reference: "/home/bioinfo/ubuntu/database/hg19/ucsc.hg19.fasta"     # 参考基因组
+    markDups: true                                                      # 是否标记重复
+    removeDups: false                                                   # 是否去除重复，只有标记重复为true时才会判断此值
+    recalibrate: true                                                   # 是否进行Bam文件质量校正
+    mills: "Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"        # 用于BQSR的数据库1
+    indel_1000g: "1000G_phase1.indels.hg19.sites.vcf"                   # 用于BQSR的数据库2
+    snp_1000g: "dbsnp_138.hg19.vcf"                                     # 用于BQSR的数据库3
   Mutation:
-    pon:
+    pon:                                                                # mutect2使用的panel of normal
     gatk_filter:
-      run: false                                       # 是否进行mutect2结果的过滤，注意，运行此步必须有bed文件
-      small_exac: "small_exac_common_3_hg19.vcf"
+      run: false                                                        # 是否进行mutect2结果的过滤，注意，运行此步必须有bed文件
+      small_exac: "small_exac_common_3_hg19.vcf"                        # 过滤数据库
     filter:
-      DP: 1000
-      QUAL: 20
-      MAF: 0.01
-    Bed: "/home/bioinfo/ubuntu/database/hg19/cnv/tmerge.bed"
+      DP: 1000                                                          # 变异检测设定最低深度
+      QUAL: 20                                                          # 变异检测设定Q值
+      MAF: 0.01                                                         # 变异检测设定最低突变丰度
+    Bed: "/home/bioinfo/ubuntu/database/hg19/cnv/tmerge.bed"            # bed文件
     CNV:
-      target: "/home/bioinfo/ubuntu/database/hg19/cnv/t.target.bed"
-      antitarget: "/home/bioinfo/ubuntu/database/hg19/cnv/t.antitarget.bed"
-      baseline: "/home/bioinfo/ubuntu/database/hg19/cnv/reference.t.cnn"
-    gnomad: "af-only-gnomad.raw.sites.hg19.vcf.gz"
+      target: "/home/bioinfo/ubuntu/database/hg19/cnv/t.target.bed"           # cnvkit的target文件
+      antitarget: "/home/bioinfo/ubuntu/database/hg19/cnv/t.antitarget.bed"   # cnvkit的antitarget文件
+      baseline: "/home/bioinfo/ubuntu/database/hg19/cnv/reference.t.cnn"      # cnvkit建立的baseline
+    gnomad: "af-only-gnomad.raw.sites.hg19.vcf.gz"                      # 人群频率数据库
   Annotation:
-    humandb: "/home/bioinfo/ubuntu/database/humandb"
-    buildver: "hg19"
-    refFlat: "/home/bioinfo/ubuntu/database/hg19/hg19_refFlat.txt"
+    humandb: "/home/bioinfo/ubuntu/database/humandb"                    # annovar数据库
+    buildver: "hg19"                                                    # annovar设定参考版本
+    refFlat: "/home/bioinfo/ubuntu/database/hg19/hg19_refFlat.txt"      # refFlat数据库
   Other:
-    msisensor2_model: "/home/bioinfo/ubuntu/software/msisensor2/models_hg19_GRCh37"
-    msisensorpro_baseline: "/home/bioinfo/ubuntu/project/MSI_20210305/Config/msi_pro_recal/hg19.msi.list_baseline"
-    msi_list: "/home/bioinfo/ubuntu/database/hg19/hg19.msi.list"
-    PanelSize:
-  Report:
-  REMOVE_TMP: false
+    msisensor2_model: "/home/bioinfo/ubuntu/software/msisensor2/models_hg19_GRCh37"                                 # msisensor2预训练model
+    msisensorpro_baseline: "/home/bioinfo/ubuntu/project/MSI_20210305/Config/msi_pro_recal/hg19.msi.list_baseline"  # msisensorpro的baseline
+    msi_list: "/home/bioinfo/ubuntu/database/hg19/hg19.msi.list"                                                    # msisensor通用msi list
+    PanelSize:                                                          # 用于TMB计算的panel大小
+  Report:                                                               # 
+  REMOVE_TMP: false                                                     # 是否删除中间文件

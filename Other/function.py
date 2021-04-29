@@ -146,10 +146,11 @@ def mergeResultsToExcel(resultsDir, sampleID):
         neo = os.listdir(resultsDir + "/Neoantigen")
         if len(neo) != 0:
             for n in neo:
-                if sampleID in n:
-                    content = read_txt(resultsDir + "/Neoantigen/" + n)
-                    ws_Neo = wb.create_sheet(n.replace(".filter.txt", "").replace(sampleID + ".", ""))
-                    write_excel(ws_Neo, content)
+                if ".txt" in n:
+                    if sampleID in n:
+                        content = read_txt(resultsDir + "/Neoantigen/" + n)
+                        ws_Neo = wb.create_sheet(n.replace(".filter.txt", "").replace(sampleID + ".", ""))
+                        write_excel(ws_Neo, content)
 
 
     wb.remove(wb["Sheet"])

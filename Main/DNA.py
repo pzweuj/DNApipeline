@@ -162,6 +162,19 @@ def main(runInfo):
         print("QUAL " + SnvIndel_process.filtQUAL)
         SnvIndel_process.filter()
 
+    # 注释
+    if Annotation_ == None:
+        print("根据设定不进行注释")
+    elif Annotation_ == False:
+        print("根据设定不进行注释")
+    else:
+        Annotation_process = Annotation(runningInformation)
+        print("使用多工具进行注释")
+        print("检测后文件输出目录： " + Annotation_process.output + "/annotation")
+        print("使用线程数 " + Annotation_process.threads)
+        Annotation_process.annovar()
+        Annotation_process.ResultsFilter()
+
     ## CNV
     ## [cnvkit]
     if CNV_ == None:
@@ -177,39 +190,21 @@ def main(runInfo):
         else:
             print("未找到此CNV检测方法")
 
-    ## SV
-    ## [lumpy, manta]
+
+    ## 融合检测
     if SV_ == None:
-        print("根据设定不进行SV检测")
+        print("根据设定不进行TMB计算")
+    elif SV_ == False:
+        print("根据设定不进行TMB计算")
     else:
         SV_process = SV(runningInformation)
-        print("使用 " + SV_process.runApp + " 进行结构变异/融合变异检测")
+        print("使用 Lumpy+Manta 进行结构变异/融合变异检测")
         print("检测后文件输出目录： " + SV_process.output + "/Fusion")
-        print("使用线程数 " + SV_process.threads)
-        if SV_process.runApp == "lumpy":
-            SV_process.lumpy()
-            SV_process.lumpy_filter()
-            SV_process.sv_anno()
-        elif SV_process.runApp == "manta":
-            SV_process.manta()
-            SV_process.manta_filter()
-            SV_process.sv_anno()
-        else:
-            print("未找到此SV检测方法")
-
-    # 注释
-    # [annovar]
-    if Annotation_ == None:
-        print("根据设定不进行注释")
-    elif Annotation_ == False:
-        print("根据设定不进行注释")
-    else:
-        Annotation_process = Annotation(runningInformation)
-        print("使用多工具进行注释")
-        print("检测后文件输出目录： " + Annotation_process.output + "/annotation")
-        print("使用线程数 " + Annotation_process.threads)
-        Annotation_process.annovar()
-        Annotation_process.ResultsFilter()
+        SV_process.lumpy()
+        SV_process.lumpy_filter()
+        SV_process.manta()
+        SV_process.manta_filter()
+        SV_process.sv_anno()
 
 
     # Other

@@ -111,7 +111,7 @@ class Mapping(object):
 
         tmpDir = resultsDir + "/tempFile/gencore_" + sampleID
         mkdir(tmpDir)
-        tmp = tmpdir + "/tmp"
+        tmp = tmpDir + "/tmp"
         mkdir(tmp)
         cmd = """
             gencore -i {resultsDir}/bam/{sampleID}.bam \\

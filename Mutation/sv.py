@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.17"
+__Version__ = "0.18"
 __Author__ = "pzweuj"
-__Date__ = "20210304"
+__Date__ = "20210429"
 
 
 import os
@@ -16,6 +16,8 @@ from Other.function import mkdir
 class SV(object):
     """
     结构变异与融合检测模块
+    改可选lumpy及manta分析为lumpy+manta分析
+    基本不再考虑加入其他软件，下方的其他软件方法仅保留作为归类信息
     """
     def __init__(self, runningInfo):
         self.runningInfo = runningInfo
@@ -224,7 +226,7 @@ class SV(object):
                 lumpyResultsFilter.write(output)
         lumpyResultsFilter.close()
         lumpyResults.close()
-        os.system("cp " + tmpDir + "/" + sampleID + ".lumpy.filter.vcf " + resultsDir + "/Fusion/" + sampleID + ".sv.vcf")
+        os.system("cp " + tmpDir + "/" + sampleID + ".lumpy.filter.vcf " + resultsDir + "/Fusion/")
 
 
 
@@ -330,7 +332,8 @@ class SV(object):
                 mantaResultsFilter.write(line)
         mantaResultsFilter.close()
         mantaResults.close()
-        os.system("cp " + tmpDir + "/" + sampleID + ".manta.filter.vcf " + resultsDir + "/Fusion/" + sampleID + ".sv.vcf")
+        os.system("cp " + tmpDir + "/" + sampleID + ".manta.filter.vcf " + resultsDir + "/Fusion/")
+
 
     # 自编sv注释
     # 对数据库进行解析，数据库使用refFlat，可通过ucsc直接下载
@@ -453,11 +456,11 @@ class SV(object):
         pairID = self.pair
         resultsDir = self.output
         refFlat = self.runningInfo["setting"]["Annotation"]["refFlat"]
-        runApp = self.runApp
 
-        svFile = open(resultsDir + "/Fusion/" + sampleID + ".sv.vcf", "r")
-        svAnno = open(resultsDir + "/Fusion/" + sampleID + "." + runApp + ".txt", "w")
-        svAnno.write("chrom1\tbreakpoint1\tgene1\tchrom2\tbreakpoint2\tgene2\tfusionType\tAlt\tgeneSymbol\tPR\tSR\tDP\tVAF\tExon\tTranscript\n")
+        # lumpy
+        svFile = open(resultsDir + "/Fusion/" + sampleID + ".lumpy.filter.vcf", "r")
+        svAnno = open(resultsDir + "/Fusion/" + sampleID + ".fusion.txt", "w")
+        svAnno.write("chrom1\tbreakpoint1\tgene1\tchrom2\tbreakpoint2\tgene2\tfusionType\tAlt\tgeneSymbol\tPR\tSR\tDP\tVAF\tExon\tTranscript\tSource\n")
         for line in svFile:
             if line.startswith("#"):
                 continue
@@ -559,8 +562,114 @@ class SV(object):
 
                     outputString = "\t".join(outputStringList)
                     print(outputString)
-                    svAnno.write(outputString + "\n")
+                    svAnno.write(outputString + "\tLumpy\n")
         svFile.close()
+        
+        # manta
+        svFile = open(resultsDir + "/Fusion/" + sampleID + ".manta.filter.vcf", "r")
+        for line in svFile:
+            if line.startswith("#"):
+                continue
+            else:
+                lineAfterSplit = line.split("\t")
+                chrom = lineAfterSplit[0]
+                Pos = lineAfterSplit[1]
+                ID = lineAfterSplit[2]
+                Ref = lineAfterSplit[3]
+                Alt = lineAfterSplit[4]
+                Qual = lineAfterSplit[5]
+                Filter = lineAfterSplit[6]
+                Info = lineAfterSplit[7]
+                Format = lineAfterSplit[8]
+
+                if pairID == None:
+                    Sample = lineAfterSplit[9]
+                else:
+                    Sample = lineAfterSplit[10]
+
+                if chrom == "chrM":
+                    continue
+
+                if ":" in Format:
+                    S = Sample.split(":")
+                    PR = S[0].split(",")
+                    SR = S[1].split(",")
+                    PR_ref = int(PR[0])
+                    PR_alt = int(PR[1])
+                    SR_ref = int(SR[0])
+                    SR_alt = int(SR[1])
+                else:
+                    PR = Sample.split(",")
+                    PR_ref = int(PR[0])
+                    PR_alt = int(PR[1])
+                    SR_ref = SR_alt = 0
+
+                DP = PR_ref + SR_ref + PR_alt + SR_alt
+                VAF = "%.2f" % (100 * float(PR_alt + SR_alt) / DP) + "%"
+
+                if ("[" in Alt) or ("]" in Alt):
+                    if chrom in Alt:
+                        fusionType = "Inversion"
+                    else:
+                        fusionType = "Translocation"
+
+                    # G    [chr1:1111111[G
+                    if Alt[0] == "[":
+                        chrom2 = Alt.split(":")[0].split("[")[1]
+                        breakpoint2 = Alt.split(":")[1].split("[")[0]
+                        strand = "--"
+                    
+                    # G    G[chr1:1111111[
+                    elif Alt[-1] == "[":
+                        chrom2 = Alt.split(":")[0].split("[")[1]
+                        breakpoint2 = Alt.split(":")[1].split("[")[0]
+                        strand = "+-"
+
+                    # G    ]chr1:1111111]G
+                    elif Alt[0] == "]":
+                        chrom2 = Alt.split(":")[0].split("]")[1]
+                        breakpoint2 = Alt.split(":")[1].split("]")[0]
+                        strand = "-+"
+
+                    # G    G]chr1:1111111]
+                    elif Alt[-1] == "]":
+                        chrom2 = Alt.split(":")[0].split("]")[1]
+                        breakpoint2 = Alt.split(":")[1].split("]")[0]
+                        strand = "++"
+
+                    else:
+                        chrom2 = "Unknown"
+                        breakpoint2 = "Unknown"
+                        strand = "Unknown"
+                        print("can not analysis: " + ID)
+
+                    self.database = refFlat
+                    self.svStrand = strand[0]
+                    self.svChrom = chrom
+                    self.breakPoint = Pos
+                    anno1 = self.checkFusionHotSpot()
+                    if chrom2 != "Unknown":
+                        self.svStrand = strand[1]
+                        self.svChrom = chrom2
+                        self.breakPoint = breakpoint2
+                        anno2 = self.checkFusionHotSpot()
+                    else:
+                        anno2 = [["GeneUnknown_exon?"], ["Transcript?"]]
+
+                    gene1 = anno1[0][0].split("_")[0]
+                    gene2 = anno2[0][0].split("_")[0]
+
+                    if gene1 == gene2:
+                        continue
+
+                    exon_output = ",".join(anno1[0]) + "|" + ",".join(anno2[0])
+                    transcript_output = ",".join(anno1[1]) + "|" + ",".join(anno2[1])
+                    outputStringList = [chrom, Pos, gene1, chrom2, breakpoint2, gene2, fusionType, Alt, gene1 + "-" + gene2, str(PR_alt), str(SR_alt), str(DP), VAF, exon_output, transcript_output]
+
+                    outputString = "\t".join(outputStringList)
+                    print(outputString)
+                    svAnno.write(outputString + "\tManta\n")        
+        svFile.close()        
         svAnno.close()
 
 

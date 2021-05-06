@@ -1,9 +1,9 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-__Version__ = "0.18"
+__Version__ = "0.19"
 __Author__ = "pzweuj"
-__Date__ = "20210429"
+__Date__ = "20210506"
 
 
 import os
@@ -165,17 +165,35 @@ class SV(object):
                 pos2 = chrom2s.split(":")[1]
 
                 FORMAT = "PR:SR"
+                FORMAT_origin = lineAfterSplit[8].split(":")
                 FORMAT_info = lineAfterSplit[9]
                 infos = FORMAT_info.split(":")
+                formatDict = {}
+                for F in range(len(FORMAT_origin)):
+                    formatDict[FORMAT_origin[F]] = infos[F]
                 
                 if pairID != None:
                     FORMAT_info_n = lineAfterSplit[10]
                     infos_n = FORMAT_info_n.split(":")
-                    PR_alt_n = infos_n[2]
-                    SR_alt_n = infos_n[3]
+                    for F in range(len(FORMAT_origin)):
+                        formatDict_n[FORMAT_origin[F]] = infos_n[F]
+                    try:
+                        PR_alt_n = formatDict_n["PE"]
+                    except:
+                        PR_alt_n = "0"
+                    try:
+                        SR_alt_n = formatDict_n["SR"]
+                    except:
+                        SR_alt_n = "0"
 
-                PR_alt = infos[2]
-                SR_alt = infos[3]
+                try:
+                    PR_alt = formatDict["PE"]
+                except:
+                    PR_alt = "0"
+                try:
+                    SR_alt = formatDict["SR"]
+                except:
+                    SR_alt = "0"
                 check1 = chrom1 + ":" + pos1 + "-" + pos1
                 check2 = chrom2 + ":" + pos2 + "-" + pos2
                 

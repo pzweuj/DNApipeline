@@ -193,9 +193,9 @@ def main(runInfo):
 
     ## 融合检测
     if SV_ == None:
-        print("根据设定不进行TMB计算")
+        print("根据设定不进行融合计算")
     elif SV_ == False:
-        print("根据设定不进行TMB计算")
+        print("根据设定不进行融合计算")
     else:
         SV_process = SV(runningInformation)
         print("使用 Lumpy+Manta 进行结构变异/融合变异检测")

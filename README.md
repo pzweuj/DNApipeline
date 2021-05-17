@@ -10,6 +10,8 @@ python3 DNA.py -i <yaml>
 
 
 ## 更新
+20210517 着手用WDL重写
+
 20210510 着手用snakemake重写
 
 20210428 基本完成，着手写文档，另外或者打包成docker？或者用WDL重写？

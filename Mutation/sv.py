@@ -252,12 +252,13 @@ class SV(object):
     # https://github.com/Illumina/manta
     # 当前建议使用manta，因为manta可同时输出read depth
     def manta(self):
-        manta = "/mnt/d/ubuntu/software/manta-1.6.0.centos6_x86_64/bin/configManta.py"
+        manta = "/home/bioinfo/ubuntu/software/manta-1.6.0/bin/configManta.py"
         reference = self.reference
         tumorBam = self.bam
         resultsDir = self.output
         sampleID = self.sample
         pairID = self.pair
+        threads = self.threads
 
         tmpDir = resultsDir + "/tempFile/manta_" + sampleID
         mkdir(tmpDir) 
@@ -271,9 +272,9 @@ class SV(object):
                     --exome \\
                     --generateEvidenceBam \\
                     --runDir {tmpDir}
-                {tmpDir}/runWorkflow.py
+                {tmpDir}/runWorkflow.py -j {threads}
                 zcat {tmpDir}/results/variants/tumorSV.vcf.gz > {tmpDir}/{sampleID}.manta.vcf
-            """.format(sampleID=sampleID, manta=manta, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
+            """.format(threads=threads, sampleID=sampleID, manta=manta, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
         else:
             normalBam = self.normal
             cmd = """
@@ -285,9 +286,9 @@ class SV(object):
                     --exome \\
                     --generateEvidenceBam \\
                     --runDir {tmpDir}
-                {tmpDir}/runWorkflow.py
+                {tmpDir}/runWorkflow.py -j {threads}
                 zcat {tmpDir}/results/variants/somaticSV.vcf.gz > {tmpDir}/{sampleID}.manta.vcf
-            """.format(sampleID=sampleID, manta=manta, normalBam=normalBam, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
+            """.format(threads=threads, sampleID=sampleID, manta=manta, normalBam=normalBam, tumorBam=tumorBam, reference=reference, tmpDir=tmpDir)
 
         print(cmd)
         os.system(cmd)

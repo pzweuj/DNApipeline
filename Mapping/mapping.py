@@ -144,8 +144,8 @@ class Mapping(object):
             print(p)
             os.system(p)
 
-    # GATK4
-    # https://github.com/broadinstitute/gatk
+    # sambamba
+    # https://lomereiter.github.io/sambamba/
     def markDuplicates(self):
         resultsDir = self.output
         sampleID = self.sample

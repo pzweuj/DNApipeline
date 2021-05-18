@@ -146,7 +146,6 @@ class SNV_Indel(object):
         pairID = self.pair
         bedFile = self.bed
         threads = self.threads
-        bedFile = self.bed
         MAF = self.MAF
         DP = self.filtDP
         minCov = str(int(int(DP) * float(MAF)))

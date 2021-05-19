@@ -464,7 +464,7 @@ class SV(object):
                     ts_output.append(ts)
 
         if not output:
-            output.append("GeneUnknown_exon?")        
+            output.append("GeneUnknown_exon?")
         if not ts_output:
             ts_output.append("Transcript?")
         db.close()
@@ -688,7 +688,7 @@ class SV(object):
                     outputString = "\t".join(outputStringList)
                     print(outputString)
                     svAnno.write(outputString + "\tManta\n")        
-        svFile.close()        
+        svFile.close()
         svAnno.close()
 
 

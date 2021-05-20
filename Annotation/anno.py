@@ -123,11 +123,13 @@ class Annotation(object):
 
         # 生成字典keys
         lineDict = {}
+        lineDictList = []
         for line in annvarResults:
             if line.startswith("Chr\tStart"):
                 lines = line.replace("\n", "").split("\t")
                 for k in lines:
                     lineDict[k] = "-"
+                    lineDictList.append(k)
         annvarResults.close()
 
         # 再次打开
@@ -139,7 +141,7 @@ class Annotation(object):
                 
                 # 生成字典
                 for i in range(len(lines)):
-                    lineDict[k[i]] = lines[i]
+                    lineDict[lineDictList[i]] = lines[i]
                 
                 # 开始处理
                 # 处理Insertion状态下的End
@@ -161,7 +163,7 @@ class Annotation(object):
                         snpeff_anno = o8
                 snpeff_annos = snpeff_anno.replace("ANN=", "").split(",")
                 
-                # 此处需使用固定转录本，未完成
+                # 此处需使用固定转录本
                 if len(snpeff_annos) > 1:
                     snpeff_select = snpeff_annos[0]
                     gene = snpeff_select.split("|")[3]

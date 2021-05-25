@@ -171,7 +171,7 @@ class SV(object):
                 formatDict = {}
                 for F in range(len(FORMAT_origin)):
                     formatDict[FORMAT_origin[F]] = infos[F]
-                
+                formatDict_n = {}
                 if pairID != None:
                     FORMAT_info_n = lineAfterSplit[10]
                     infos_n = FORMAT_info_n.split(":")

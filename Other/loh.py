@@ -247,7 +247,7 @@ class LOH(object):
                 --mappingStep TRUE \\
                 --minCoverageFilter 10 \\
                 --fishingStep TRUE \\
-                --cleanUp TRUE \\
+                --cleanUp FALSE \\
                 --gatkDir /home/bioinfo/ubuntu/software/picard \\
                 --novoDir /home/bioinfo/ubuntu/software/novocraft \\
                 --LOHHLA_loc {HLAloc} \\

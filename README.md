@@ -10,6 +10,8 @@ python3 DNA.py -i <yaml>
 
 
 ## 更新
+20210530 snakemake与WDL版本用于内部生产环境，不公开
+
 20210517 着手用WDL重写
 
 20210510 着手用snakemake重写
